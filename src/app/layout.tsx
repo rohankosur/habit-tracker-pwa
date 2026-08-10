@@ -67,7 +67,7 @@ export default function RootLayout({
               <AmbientParticles />
               <ServiceWorkerRegister />
               <Navigation />
-              <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 py-6 z-10 relative overflow-x-hidden">
+              <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 pt-5 pb-24 md:pb-6 z-10 relative overflow-x-hidden">
                 {children}
               </main>
             </ThemeProvider>
