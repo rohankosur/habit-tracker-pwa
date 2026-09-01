@@ -7,6 +7,7 @@ import { DeviceLayoutProvider } from "@/contexts/DeviceLayoutContext";
 import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
 import Navigation from "@/components/Navigation";
 import AmbientParticles from "@/components/AmbientParticles";
+import DeviceMainContainer from "@/components/DeviceMainContainer";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -67,9 +68,9 @@ export default function RootLayout({
               <AmbientParticles />
               <ServiceWorkerRegister />
               <Navigation />
-              <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 pt-5 pb-24 md:pb-6 z-10 relative overflow-x-hidden">
+              <DeviceMainContainer>
                 {children}
-              </main>
+              </DeviceMainContainer>
             </ThemeProvider>
           </DeviceLayoutProvider>
         </AuthProvider>

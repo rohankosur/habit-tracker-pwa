@@ -7,12 +7,16 @@ export type LayoutMode = 'auto' | 'mobile' | 'desktop';
 interface DeviceLayoutContextType {
   layoutMode: LayoutMode;
   activeDevice: 'mobile' | 'desktop';
+  isMobile: boolean;
+  isDesktop: boolean;
   setLayoutMode: (mode: LayoutMode) => void;
 }
 
 const DeviceLayoutContext = createContext<DeviceLayoutContextType>({
   layoutMode: 'auto',
   activeDevice: 'desktop',
+  isMobile: false,
+  isDesktop: true,
   setLayoutMode: () => {},
 });
 
@@ -32,10 +36,11 @@ export function DeviceLayoutProvider({ children }: { children: React.ReactNode }
       const width = window.innerWidth;
       const height = window.innerHeight;
       const isPortrait = height > width;
-      const isPhoneUA = /iPhone|iPod|Android.*Mobile/i.test(navigator.userAgent);
+      const isPhoneUA = /iPhone|iPod|Android.*Mobile|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      const isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
 
-      // PC Widescreen Desktop Mode vs Mobile PWA Mode
-      if (width < 768 || (isPhoneUA && isPortrait)) {
+      // Mobile Mode: Screen width < 768px OR (phone user agent & portrait) OR small touch screen
+      if (width < 768 || (isPhoneUA && isPortrait) || (isTouchDevice && width < 600)) {
         setDetectedDevice('mobile');
       } else {
         setDetectedDevice('desktop');
@@ -46,7 +51,7 @@ export function DeviceLayoutProvider({ children }: { children: React.ReactNode }
 
     const debouncedCheckDevice = () => {
       if (resizeTimer) clearTimeout(resizeTimer);
-      resizeTimer = setTimeout(checkDevice, 100);
+      resizeTimer = setTimeout(checkDevice, 80);
     };
 
     window.addEventListener('resize', debouncedCheckDevice);
@@ -65,10 +70,17 @@ export function DeviceLayoutProvider({ children }: { children: React.ReactNode }
   };
 
   const activeDevice = layoutMode === 'auto' ? detectedDevice : layoutMode;
+  const isMobile = activeDevice === 'mobile';
+  const isDesktop = activeDevice === 'desktop';
 
   return (
-    <DeviceLayoutContext.Provider value={{ layoutMode, activeDevice, setLayoutMode }}>
-      <div data-device-mode={activeDevice} className="min-h-screen">
+    <DeviceLayoutContext.Provider value={{ layoutMode, activeDevice, isMobile, isDesktop, setLayoutMode }}>
+      <div 
+        data-device-mode={activeDevice} 
+        className={`min-h-screen transition-all ${
+          isMobile ? 'mobile-pwa-mode' : 'desktop-studio-mode'
+        }`}
+      >
         {children}
       </div>
     </DeviceLayoutContext.Provider>

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useDeviceLayout } from '@/contexts/DeviceLayoutContext';
 import { supabase } from '@/lib/supabase';
 import { 
   Dumbbell, Bed, Smile, Sparkles, BookOpen, GlassWater, 
@@ -28,6 +29,7 @@ const IconMap: Record<string, any> = {
 
 export default function HistoryPage() {
   const { user, loading: authLoading } = useAuth();
+  const { isDesktop } = useDeviceLayout();
   const [logs, setLogs] = useState<any[]>([]);
   const [questionsMap, setQuestionsMap] = useState<Record<string, any>>({});
   const [searchQuery, setSearchQuery] = useState('');
@@ -217,112 +219,104 @@ export default function HistoryPage() {
             </p>
           </div>
         ) : (
-          <div className="relative border-l border-zinc-850 ml-3.5 pl-6 space-y-6">
+          <div className={`space-y-6 ${isDesktop ? 'grid grid-cols-2 gap-6 space-y-0' : ''}`}>
             {filteredLogs.map((log) => {
               const responses = log.responses || {};
               const answeredIds = Object.keys(responses);
 
               return (
-                <div key={log.id} className="relative group">
-                  {/* Timeline node */}
-                  <div className="absolute -left-[31px] top-1.5 w-3.5 h-3.5 rounded-full bg-zinc-950 border border-zinc-850 flex items-center justify-center group-hover:border-teal-400/80 transition-all duration-300">
-                    <div className="w-1.5 h-1.5 rounded-full bg-zinc-700 group-hover:bg-teal-450 transition-all duration-300"></div>
+                <div key={log.id} className="craft-card p-5 space-y-4 hover:border-zinc-800 transition-all duration-300 shadow">
+                  <div className="flex justify-between items-center border-b border-zinc-850/65 pb-2.5">
+                    <span className="text-xs font-bold font-ios-mono" style={{ color: 'var(--accent)' }}>
+                      {formatDate(log.date)}
+                    </span>
+                    <span className="text-[10px] text-zinc-550 font-ios-mono">
+                      Logged at {new Date(log.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </span>
                   </div>
 
-                  {/* Entry Card */}
-                  <div className="craft-card p-5 space-y-4 hover:border-zinc-800 transition-all duration-300 shadow">
-                    <div className="flex justify-between items-center border-b border-zinc-850/65 pb-2.5">
-                      <span className="text-xs font-bold font-ios-mono" style={{ color: 'var(--accent)' }}>
-                        {formatDate(log.date)}
-                      </span>
-                      <span className="text-[10px] text-zinc-550 font-ios-mono">
-                        Logged at {new Date(log.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </span>
-                    </div>
+                  {answeredIds.length === 0 ? (
+                    <p className="text-xs text-zinc-500 italic">No answers saved for this day.</p>
+                  ) : (
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      {answeredIds.map((qId) => {
+                        const q = questionsMap[qId];
+                        const val = responses[qId];
+                        const prompt = q ? q.prompt : 'Deleted Prompt';
+                        const type = q ? q.type : 'text';
+                        const icon = q ? q.icon : 'help-circle';
+                        const IconComponent = IconMap[icon] || HelpCircle;
 
-                    {answeredIds.length === 0 ? (
-                      <p className="text-xs text-zinc-500 italic">No answers saved for this day.</p>
-                    ) : (
-                      <div className="grid gap-3 sm:grid-cols-2">
-                        {answeredIds.map((qId) => {
-                          const q = questionsMap[qId];
-                          const val = responses[qId];
-                          const prompt = q ? q.prompt : 'Deleted Prompt';
-                          const type = q ? q.type : 'text';
-                          const icon = q ? q.icon : 'help-circle';
-                          const IconComponent = IconMap[icon] || HelpCircle;
+                        return (
+                          <div 
+                            key={qId} 
+                            className={`p-3 rounded-xl border border-zinc-850/50 bg-zinc-950/20 flex flex-col justify-between space-y-2 ${
+                              type === 'text' ? 'sm:col-span-2' : ''
+                            }`}
+                          >
+                            <div className="flex items-center space-x-2">
+                              <div className="p-1 rounded bg-zinc-900 border border-zinc-850 text-zinc-400 shrink-0">
+                                <IconComponent className="w-3.5 h-3.5" />
+                              </div>
+                              <span className="block text-xs font-semibold text-zinc-450 leading-tight font-ios-sans">
+                                {prompt}
+                              </span>
+                            </div>
 
-                          return (
-                            <div 
-                              key={qId} 
-                              className={`p-3 rounded-xl border border-zinc-850/50 bg-zinc-950/20 flex flex-col justify-between space-y-2 ${
-                                type === 'text' ? 'sm:col-span-2' : ''
-                              }`}
-                            >
-                              <div className="flex items-center space-x-2">
-                                <div className="p-1 rounded bg-zinc-900 border border-zinc-850 text-zinc-400 shrink-0">
-                                  <IconComponent className="w-3.5 h-3.5" />
-                                </div>
-                                <span className="block text-xs font-semibold text-zinc-450 leading-tight font-ios-sans">
-                                  {prompt}
+                            {/* Yes/No answer */}
+                            {type === 'boolean' && (
+                              <div className="flex items-center mt-1 font-ios-rounded">
+                                {val === true ? (
+                                  <span 
+                                    className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-black border"
+                                    style={{ backgroundColor: 'var(--accent-glow)', borderColor: 'var(--accent-border)', color: 'var(--accent)' }}
+                                  >
+                                    <Check className="w-3.5 h-3.5 mr-0.5" /> Yes
+                                  </span>
+                                ) : val === false ? (
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-black bg-red-500/10 text-red-400 border border-red-500/20">
+                                    <X className="w-3.5 h-3.5 mr-0.5" /> No
+                                  </span>
+                                ) : (
+                                  <span className="text-xs text-zinc-500 italic">-</span>
+                                )}
+                              </div>
+                            )}
+
+                            {/* Numeric answer */}
+                            {type === 'number' && (
+                              <span className="text-sm font-bold text-zinc-200 font-ios-mono mt-1 pl-0.5">
+                                {val !== null && val !== undefined ? String(val) : '-'}
+                              </span>
+                            )}
+
+                            {/* Scale rating */}
+                            {type === 'scale_1_to_5' && (
+                              <div className="flex items-center space-x-1 mt-1 pl-0.5 font-ios-rounded">
+                                <span className="text-sm font-black font-ios-rounded text-lg" style={{ color: 'var(--accent)' }}>
+                                  {val}
+                                </span>
+                                <span className="text-zinc-650 text-xs font-ios-mono">/ 5</span>
+                                <span className="text-[10px] text-zinc-500 font-bold font-ios-mono uppercase tracking-wider ml-1">
+                                  ({val === 5 ? 'Excellent' : val === 4 ? 'Good' : val === 3 ? 'Neutral' : val === 2 ? 'Bad' : 'Terrible'})
                                 </span>
                               </div>
+                            )}
 
-                              {/* Yes/No answer */}
-                              {type === 'boolean' && (
-                                <div className="flex items-center mt-1 font-ios-rounded">
-                                  {val === true ? (
-                                    <span 
-                                      className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-black border"
-                                      style={{ backgroundColor: 'var(--accent-glow)', borderColor: 'var(--accent-border)', color: 'var(--accent)' }}
-                                    >
-                                      <Check className="w-3.5 h-3.5 mr-0.5" /> Yes
-                                    </span>
-                                  ) : val === false ? (
-                                    <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-black bg-red-500/10 text-red-400 border border-red-500/20">
-                                      <X className="w-3.5 h-3.5 mr-0.5" /> No
-                                    </span>
-                                  ) : (
-                                    <span className="text-xs text-zinc-500 italic">-</span>
-                                  )}
-                                </div>
-                              )}
-
-                              {/* Numeric answer */}
-                              {type === 'number' && (
-                                <span className="text-sm font-bold text-zinc-200 font-ios-mono mt-1 pl-0.5">
-                                  {val !== null && val !== undefined ? String(val) : '-'}
-                                </span>
-                              )}
-
-                              {/* Scale rating */}
-                              {type === 'scale_1_to_5' && (
-                                <div className="flex items-center space-x-1 mt-1 pl-0.5 font-ios-rounded">
-                                  <span className="text-sm font-black font-ios-rounded text-lg" style={{ color: 'var(--accent)' }}>
-                                    {val}
-                                  </span>
-                                  <span className="text-zinc-650 text-xs font-ios-mono">/ 5</span>
-                                  <span className="text-[10px] text-zinc-500 font-bold font-ios-mono uppercase tracking-wider ml-1">
-                                    ({val === 5 ? 'Excellent' : val === 4 ? 'Good' : val === 3 ? 'Neutral' : val === 2 ? 'Bad' : 'Terrible'})
-                                  </span>
-                                </div>
-                              )}
-
-                              {/* Written reflection */}
-                              {type === 'text' && (
-                                <div className="mt-1 flex items-start space-x-2 text-zinc-200 bg-zinc-950/40 border border-zinc-850 p-2.5 rounded-lg w-full">
-                                  <MessageSquare className="w-3.5 h-3.5 text-zinc-500 shrink-0 mt-1" />
-                                  <p className="text-base font-handwritten leading-relaxed text-zinc-300 whitespace-pre-wrap">
-                                    {val || '-'}
-                                  </p>
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
+                            {/* Written reflection */}
+                            {type === 'text' && (
+                              <div className="mt-1 flex items-start space-x-2 text-zinc-200 bg-zinc-950/40 border border-zinc-850 p-2.5 rounded-lg w-full">
+                                <MessageSquare className="w-3.5 h-3.5 text-zinc-500 shrink-0 mt-1" />
+                                <p className="text-base font-handwritten leading-relaxed text-zinc-300 whitespace-pre-wrap">
+                                  {val || '-'}
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               );
             })}
