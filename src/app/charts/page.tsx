@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDeviceLayout } from '@/contexts/DeviceLayoutContext';
 import { supabase } from '@/lib/supabase';
+import { calculateLevel, calculateStreak } from '@/lib/gamification';
+import ShareableCardModal from '@/components/ShareableCardModal';
 import { 
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, 
   AreaChart, Area, PieChart, Pie, Cell, CartesianGrid, Line
@@ -11,7 +13,8 @@ import {
 import { 
   BarChart3, TrendingUp, Smile, Bed, Award, 
   Loader2, Activity, PieChart as PieIcon, Sparkles, SlidersHorizontal,
-  ArrowRightLeft, Calendar as CalendarIcon, ChevronLeft, ChevronRight, Info
+  ArrowRightLeft, Calendar as CalendarIcon, ChevronLeft, ChevronRight, Share2, 
+  BrainCircuit, Zap, CheckCircle2, ShieldCheck, Flame
 } from 'lucide-react';
 
 interface CalendarDayScore {
@@ -27,12 +30,15 @@ interface CalendarDayScore {
 
 export default function ChartsPage() {
   const { user, loading: authLoading } = useAuth();
-  const { activeDevice } = useDeviceLayout();
+  const { isDesktop } = useDeviceLayout();
   const [logs, setLogs] = useState<any[]>([]);
   const [questions, setQuestions] = useState<any[]>([]);
   const [metricAId, setMetricAId] = useState<string>('');
   const [metricBId, setMetricBId] = useState<string>('');
   const [loading, setLoading] = useState(true);
+
+  // Life Wrapped Share Modal State
+  const [showShareModal, setShowShareModal] = useState(false);
 
   // Month Navigation State for Monthly Habit Score Calendar Grid
   const [calendarDate, setCalendarDate] = useState<Date>(new Date());
@@ -100,7 +106,7 @@ export default function ChartsPage() {
     const firstDayOfMonth = new Date(year, month, 1);
     const lastDayOfMonth = new Date(year, month + 1, 0);
 
-    const startDayOfWeek = firstDayOfMonth.getDay(); // 0 = Sun, 1 = Mon, ...
+    const startDayOfWeek = firstDayOfMonth.getDay();
     const totalDaysInMonth = lastDayOfMonth.getDate();
 
     const logMap = new Map(logs.map((l) => [l.date, l]));
@@ -185,7 +191,7 @@ export default function ChartsPage() {
     setCalendarDate(new Date(calendarDate.getFullYear(), calendarDate.getMonth() + 1, 1));
   };
 
-  // 1. Dynamic Metric Correlation Data Extractor
+  // Dynamic Metric Correlation Data Extractor
   const getCustomCorrelationData = () => {
     if (!metricAId || !metricBId || logs.length === 0) return [];
 
@@ -221,7 +227,7 @@ export default function ChartsPage() {
     });
   };
 
-  // 2. Compute Statistical Correlation Insight Text
+  // Compute Statistical Correlation Insight Text
   const getCorrelationInsightText = () => {
     const correlationData = getCustomCorrelationData();
     if (correlationData.length < 2) {
@@ -263,7 +269,91 @@ export default function ChartsPage() {
     }
   };
 
-  // 3. Prepare 14-Day Activity Trend Data
+  // AI Habit Detective & Behavioral Causality Insights
+  const getAIBehavioralInsights = () => {
+    if (logs.length < 3) {
+      return [
+        {
+          title: 'Habit Synergy Engine Warming Up',
+          desc: 'Log at least 3 daily check-ins to unlock automated behavioral causality analysis.',
+          tag: 'AI Detective 🤖',
+          type: 'neutral',
+        }
+      ];
+    }
+
+    const insights = [];
+    const goodQuestions = questions.filter((q) => (q.habit_type || 'good') === 'good' && q.type === 'boolean');
+    const badQuestions = questions.filter((q) => q.habit_type === 'bad' && q.type === 'boolean');
+
+    if (goodQuestions.length > 0 && badQuestions.length > 0) {
+      const gQ = goodQuestions[0];
+      const bQ = badQuestions[0];
+
+      let bothGoodDays = 0;
+      let totalGDays = 0;
+
+      logs.forEach((log) => {
+        if (log.responses?.[gQ.id] === true) {
+          totalGDays++;
+          if (log.responses?.[bQ.id] === false) {
+            bothGoodDays++;
+          }
+        }
+      });
+
+      const synergyRate = totalGDays > 0 ? Math.round((bothGoodDays / totalGDays) * 100) : 0;
+      if (synergyRate >= 60) {
+        insights.push({
+          title: `Keystone Habit: "${gQ.prompt.slice(0, 28)}..."`,
+          desc: `Whenever you complete this habit, you are ${synergyRate}% more likely to successfully avoid "${bQ.prompt.slice(0, 28)}...".`,
+          tag: 'Keystone Synergy ⚡',
+          type: 'positive',
+        });
+      }
+    }
+
+    // Peak Performance Day of the Week
+    const dayScores: Record<string, { count: number; total: number }> = {
+      Sun: { count: 0, total: 0 },
+      Mon: { count: 0, total: 0 },
+      Tue: { count: 0, total: 0 },
+      Wed: { count: 0, total: 0 },
+      Thu: { count: 0, total: 0 },
+      Fri: { count: 0, total: 0 },
+      Sat: { count: 0, total: 0 },
+    };
+
+    logs.forEach((l) => {
+      const d = new Date(l.date);
+      const dayName = d.toLocaleDateString('en-US', { weekday: 'short' });
+      if (dayScores[dayName]) {
+        dayScores[dayName].count++;
+        const ansCount = Object.keys(l.responses || {}).length;
+        dayScores[dayName].total += ansCount;
+      }
+    });
+
+    let bestDay = 'Monday';
+    let maxLogs = 0;
+    Object.entries(dayScores).forEach(([dName, data]) => {
+      if (data.count > maxLogs) {
+        maxLogs = data.count;
+        bestDay = dName;
+      }
+    });
+
+    insights.push({
+      title: `Peak Momentum Day: ${bestDay}`,
+      desc: `Your reflection frequency and habit execution peaks on ${bestDay}s. Leverage this day for demanding milestones!`,
+      tag: 'Circadian Peak 🚀',
+      type: 'highlight',
+    });
+
+    return insights;
+  };
+
+  // 14-Day Activity Trend Data
   const get14DayTrendData = () => {
     const logMap = new Map(logs.map((l) => [l.date, l]));
     const data = [];
@@ -288,7 +378,7 @@ export default function ChartsPage() {
     return data;
   };
 
-  // 4. Prepare Habit Completion Rates
+  // Prepare Habit Completion Rates
   const getHabitCompletionData = () => {
     if (!questions || questions.length === 0 || !logs || logs.length === 0) return [];
 
@@ -320,7 +410,7 @@ export default function ChartsPage() {
     });
   };
 
-  // 5. Calculate Key Metrics
+  // Calculate Key Metrics
   const getSummaryMetrics = () => {
     const totalLogs = logs.length;
     const daysInMonth = 30;
@@ -331,6 +421,8 @@ export default function ChartsPage() {
 
     let avgSleep = 0;
     let avgMood = 0;
+    let totalGoodCount = 0;
+    let totalBadAvoided = 0;
 
     if (totalLogs > 0) {
       if (sleepQ) {
@@ -341,9 +433,21 @@ export default function ChartsPage() {
         const totalMood = logs.reduce((sum, l) => sum + (Number(l.responses?.[moodQ.id]) || 0), 0);
         avgMood = Math.round((totalMood / totalLogs) * 10) / 10;
       }
+
+      logs.forEach((l) => {
+        questions.forEach((q) => {
+          const resp = l.responses?.[q.id];
+          if (resp !== undefined && resp !== null) {
+            if (q.type === 'boolean') {
+              if ((q.habit_type || 'good') === 'good' && resp === true) totalGoodCount++;
+              if (q.habit_type === 'bad' && resp === false) totalBadAvoided++;
+            }
+          }
+        });
+      });
     }
 
-    return { totalLogs, consistencyRate, avgSleep, avgMood };
+    return { totalLogs, consistencyRate, avgSleep, avgMood, totalGoodCount, totalBadAvoided };
   };
 
   if (authLoading || loading) {
@@ -355,9 +459,9 @@ export default function ChartsPage() {
     );
   }
 
-  const isDesktop = activeDevice === 'desktop';
   const correlationData = getCustomCorrelationData();
   const correlationInsight = getCorrelationInsightText();
+  const aiInsights = getAIBehavioralInsights();
   const trendData = get14DayTrendData();
   const habitData = getHabitCompletionData();
   const metrics = getSummaryMetrics();
@@ -365,8 +469,11 @@ export default function ChartsPage() {
 
   const selectedQA = questions.find((q) => q.id === metricAId);
   const selectedQB = questions.find((q) => q.id === metricBId);
-
   const monthYearLabel = calendarDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+
+  const datesList = logs.map((l) => l.date);
+  const currentStreak = calculateStreak(datesList);
+  const levelInfo = calculateLevel(metrics.totalLogs, currentStreak);
 
   const pieData = [
     { name: 'Completed Days', value: metrics.consistencyRate },
@@ -391,21 +498,50 @@ export default function ChartsPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="space-y-1">
-        <div className="flex items-center space-x-2">
-          <BarChart3 className="w-4 h-4" style={{ color: 'var(--accent)' }} />
-          <span className="text-xs uppercase tracking-widest font-extrabold font-ios-mono" style={{ color: 'var(--accent)' }}>
-            Analytics & Insights
-          </span>
+      {/* Header with Life Wrapped Share Trigger */}
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+        <div className="space-y-1">
+          <div className="flex items-center space-x-2">
+            <BarChart3 className="w-4 h-4" style={{ color: 'var(--accent)' }} />
+            <span className="text-xs uppercase tracking-widest font-extrabold font-ios-mono" style={{ color: 'var(--accent)' }}>
+              Analytics & Insights
+            </span>
+          </div>
+          <h1 className="text-3xl font-extrabold text-zinc-50 tracking-tight font-ios-serif">
+            Performance & Life Wrapped
+          </h1>
+          <p className="text-base text-zinc-400 font-handwritten text-xl leading-snug">
+            Monthly habit score heatmap (Good 🟢 vs Bad 🔴), habit completion rates, and AI correlation analysis.
+          </p>
         </div>
-        <h1 className="text-3xl font-extrabold text-zinc-50 tracking-tight font-ios-serif">
-          Performance Charts & Habit Calendar
-        </h1>
-        <p className="text-base text-zinc-400 font-handwritten text-xl leading-snug">
-          Monthly habit score heatmap (Good 🟢 vs Bad 🔴), habit completion rates, and correlation analysis.
-        </p>
+
+        {/* Share Life Wrapped Button */}
+        <button
+          onClick={() => setShowShareModal(true)}
+          style={{ background: 'var(--accent-gradient)', color: '#09090b' }}
+          className="glow-btn px-4 py-2.5 rounded-xl font-bold text-xs flex items-center space-x-2 cursor-pointer shadow-lg shrink-0 font-ios-sans self-start sm:self-auto"
+        >
+          <Sparkles className="w-4 h-4" />
+          <span>Life Wrapped ✨</span>
+        </button>
       </div>
+
+      {/* Shareable Card Modal */}
+      <ShareableCardModal
+        isOpen={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        stats={{
+          streak: currentStreak,
+          level: levelInfo.level,
+          levelTitle: levelInfo.title,
+          totalXP: levelInfo.totalXP,
+          totalLogs: metrics.totalLogs,
+          consistencyRate: metrics.consistencyRate,
+          goodHabitsCount: metrics.totalGoodCount,
+          badHabitsAvoided: metrics.totalBadAvoided,
+          periodName: monthYearLabel,
+        }}
+      />
 
       {/* Metric Cards Summary Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
@@ -446,7 +582,41 @@ export default function ChartsPage() {
         </div>
       </div>
 
-      {/* NEW FEATURE: Monthly Habit Score Calendar Grid (Green 🟢 / Red 🔴 Spectrum) */}
+      {/* NEW FEATURE: AI Correlation Detective & Behavioral Causality */}
+      <div className="craft-card p-5 space-y-3.5 border border-purple-500/30 bg-purple-500/5">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2.5">
+            <BrainCircuit className="w-5 h-5 text-purple-400" />
+            <div>
+              <h2 className="text-base font-extrabold text-zinc-100 font-ios-serif">
+                AI Habit Detective & Behavioral Causality
+              </h2>
+              <p className="text-xs text-zinc-400 font-ios-sans">
+                Algorithmic discovery of keystone habits and productivity multipliers.
+              </p>
+            </div>
+          </div>
+          <span className="text-[10px] font-bold font-ios-mono uppercase px-2 py-0.5 rounded bg-purple-500/20 text-purple-300">
+            Automated Insights
+          </span>
+        </div>
+
+        <div className={`grid gap-3 ${isDesktop ? 'grid-cols-2' : 'grid-cols-1'}`}>
+          {aiInsights.map((insight, idx) => (
+            <div key={idx} className="p-3.5 rounded-xl border border-zinc-850 bg-zinc-950/80 space-y-1">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-zinc-200 font-ios-serif">{insight.title}</span>
+                <span className="text-[9px] font-bold font-ios-mono px-1.5 py-0.5 rounded bg-zinc-900 text-teal-400 border border-zinc-800">
+                  {insight.tag}
+                </span>
+              </div>
+              <p className="text-xs text-zinc-400 font-ios-sans leading-relaxed">{insight.desc}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Monthly Habit Score Calendar Grid (Green 🟢 / Red 🔴 Spectrum) */}
       <div className="craft-card p-5 space-y-4 border-2" style={{ borderColor: 'var(--accent-border)' }}>
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-zinc-850 pb-3">
           <div className="flex items-center space-x-2.5">
@@ -506,7 +676,6 @@ export default function ChartsPage() {
 
         {/* 7-Column Monthly Calendar Grid */}
         <div className="space-y-2">
-          {/* Day Headers */}
           <div className="grid grid-cols-7 gap-2 text-center text-[10px] font-bold text-zinc-500 font-ios-mono uppercase">
             <span>Sun</span>
             <span>Mon</span>
@@ -517,7 +686,6 @@ export default function ChartsPage() {
             <span>Sat</span>
           </div>
 
-          {/* Calendar Squares Grid */}
           <div className="grid grid-cols-7 gap-2">
             {calendarGrid.map((day, idx) => {
               if (!day.inCurrentMonth) {
@@ -526,7 +694,6 @@ export default function ChartsPage() {
                 );
               }
 
-              // Spectrum style selection
               let bgStyle = "bg-zinc-950/40 border-zinc-850/60 text-zinc-650";
               if (day.hasLog) {
                 if (day.netScore >= 3) {
@@ -569,7 +736,7 @@ export default function ChartsPage() {
 
         {/* Selected Day Details Card */}
         {selectedDayHover && (
-          <div className="p-3.5 rounded-xl border border-zinc-800 bg-zinc-950 text-xs font-ios-mono space-y-1.5 animate-fade-in">
+          <div className="p-3.5 rounded-xl border border-zinc-850 bg-zinc-950 text-xs font-ios-mono space-y-1.5 animate-fade-in">
             <div className="flex items-center justify-between border-b border-zinc-850 pb-1.5">
               <span className="font-bold text-zinc-200">Details for {selectedDayHover.dateStr}</span>
               <span className={`font-black uppercase px-2 py-0.5 rounded text-[10px] ${
@@ -622,7 +789,7 @@ export default function ChartsPage() {
             <select
               value={metricAId}
               onChange={(e) => setMetricAId(e.target.value)}
-              className="w-full px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-xs font-ios-sans text-zinc-200 focus:outline-none cursor-pointer"
+              className="w-full px-3 py-2 bg-zinc-900 border border-zinc-850 rounded-lg text-xs font-ios-sans text-zinc-200 focus:outline-none cursor-pointer"
             >
               {questions.map((q) => (
                 <option key={q.id} value={q.id}>
@@ -639,7 +806,7 @@ export default function ChartsPage() {
             <select
               value={metricBId}
               onChange={(e) => setMetricBId(e.target.value)}
-              className="w-full px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-xs font-ios-sans text-zinc-200 focus:outline-none cursor-pointer"
+              className="w-full px-3 py-2 bg-zinc-900 border border-zinc-850 rounded-lg text-xs font-ios-sans text-zinc-200 focus:outline-none cursor-pointer"
             >
               {questions.map((q) => (
                 <option key={q.id} value={q.id}>

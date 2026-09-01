@@ -5,6 +5,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useDeviceLayout } from '@/contexts/DeviceLayoutContext';
 import { supabase } from '@/lib/supabase';
 import NotificationToggle from '@/components/NotificationToggle';
+import InstallPwaBanner from '@/components/InstallPwaBanner';
+import ShareableCardModal from '@/components/ShareableCardModal';
 import { 
   playCompletionChime, triggerHaptic, updateAppBadge, 
   triggerVariableReward, getRandomQuote, calculateStreakWithFreezes,
@@ -80,6 +82,7 @@ export default function Dashboard() {
   const [motivationalQuote, setMotivationalQuote] = useState('');
   const [microInsight, setMicroInsight] = useState('');
   const [copiedShare, setCopiedShare] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
 
   const getLocalTodayDateStr = () => {
     const dateObj = new Date();
@@ -343,22 +346,8 @@ export default function Dashboard() {
   };
 
   const handleShareStreak = async () => {
-    triggerHaptic(15);
-    const text = `🔥 ${streakInfo.currentStreak}-Day Streak on Reflect! Level ${levelInfo.level} (${levelInfo.title}) • ${levelInfo.totalXP} XP.`;
-    
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: 'Reflect Personal Journal',
-          text,
-          url: window.location.origin,
-        });
-      } catch {}
-    } else {
-      await navigator.clipboard.writeText(text);
-      setCopiedShare(true);
-      setTimeout(() => setCopiedShare(false), 2500);
-    }
+    triggerHaptic(20);
+    setShowShareModal(true);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -470,6 +459,26 @@ export default function Dashboard() {
           </button>
         </div>
       </div>
+
+      {/* Smart PWA Install Banner */}
+      <InstallPwaBanner />
+
+      {/* Shareable Life Wrapped Modal */}
+      <ShareableCardModal
+        isOpen={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        stats={{
+          streak: streakInfo.currentStreak,
+          level: levelInfo.level,
+          levelTitle: levelInfo.title,
+          totalXP: levelInfo.totalXP,
+          totalLogs: levelInfo.totalXP > 0 ? Math.round(levelInfo.totalXP / 20) : 1,
+          consistencyRate: Math.min(100, (streakInfo.currentStreak / 30) * 100 > 0 ? Math.round((streakInfo.currentStreak / 30) * 100) : 100),
+          goodHabitsCount: Object.values(answers).filter(v => v === true).length,
+          badHabitsAvoided: 1,
+          periodName: isTodaySelected ? "Today's" : selectedDate,
+        }}
+      />
 
       {/* Main Header */}
       <div className="flex items-center justify-between gap-4">

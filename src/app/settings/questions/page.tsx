@@ -5,12 +5,14 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useDeviceLayout } from '@/contexts/DeviceLayoutContext';
 import { supabase } from '@/lib/supabase';
 import { ACCENT_THEMES } from '@/lib/gamification';
+import { ROUTINE_BLUEPRINTS, RoutineBlueprint } from '@/lib/blueprints';
+import { triggerVariableReward, triggerHaptic, playCompletionChime } from '@/lib/feedback';
 import { 
   Dumbbell, Bed, Smile, Sparkles, BookOpen, GlassWater, 
   Brain, Flame, Heart, Coffee, ClipboardList, CheckSquare, 
   HelpCircle, Plus, Trash2, Edit2, Check, X, ArrowUp, 
   ArrowDown, Eye, EyeOff, Loader2, Download, Palette, FileSpreadsheet, FileCode,
-  Volume2, VolumeX, Smartphone, Clock, RotateCcw, Shuffle, ShieldAlert, ShieldCheck, Activity
+  Volume2, VolumeX, Smartphone, Clock, RotateCcw, Shuffle, Layers, ShieldCheck, Zap
 } from 'lucide-react';
 
 const AVAILABLE_ICONS = [
@@ -67,6 +69,7 @@ export default function QuestionsSettings() {
   const [reminderTime, setReminderTime] = useState('22:00');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [importingBlueprint, setImportingBlueprint] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
 
   const getLocalHabitTypeMap = (): Record<string, string> => {
@@ -157,6 +160,54 @@ export default function QuestionsSettings() {
   const handleReminderTimeChange = (time: string) => {
     setReminderTime(time);
     localStorage.setItem('reflect_reminder_time', time);
+  };
+
+  const handleImportBlueprint = async (blueprint: RoutineBlueprint) => {
+    if (!user) return;
+    setImportingBlueprint(blueprint.id);
+    triggerHaptic(25);
+
+    try {
+      const maxIndex = questions.reduce((max, q) => Math.max(max, q.order_index), -1);
+      
+      const insertPayloads = blueprint.questions.map((q, idx) => ({
+        user_id: user.id,
+        prompt: q.prompt,
+        type: q.type,
+        habit_type: q.habit_type,
+        order_index: maxIndex + 1 + idx,
+        is_active: true,
+        icon: q.icon,
+      }));
+
+      let { data, error } = await supabase
+        .from('questions')
+        .insert(insertPayloads)
+        .select();
+
+      if (error && (error.message.includes("habit_type") || error.message.includes("icon") || error.message.includes("column"))) {
+        const fallback = insertPayloads.map(({ habit_type, icon, ...rest }) => rest);
+        const retry = await supabase.from('questions').insert(fallback).select();
+        error = retry.error;
+        data = retry.data;
+      }
+
+      if (error) throw error;
+
+      if (data) {
+        data.forEach((item: any, i: number) => {
+          saveLocalHabitType(item.id, blueprint.questions[i]?.habit_type || 'good');
+        });
+      }
+
+      triggerVariableReward();
+      playCompletionChime();
+      await fetchQuestions();
+    } catch (err: any) {
+      alert('Failed to import blueprint: ' + err.message);
+    } finally {
+      setImportingBlueprint(null);
+    }
   };
 
   const handleResetDefaults = async () => {
@@ -422,11 +473,92 @@ export default function QuestionsSettings() {
           </span>
         </div>
         <h1 className="text-3xl font-extrabold text-zinc-50 tracking-tight font-ios-serif">
-          Settings & Preferences
+          Settings & Routine Blueprints
         </h1>
         <p className="text-base text-zinc-400 font-handwritten text-xl leading-snug">
-          Tailor your habit prompts (Good 🟢, Bad 🔴, Neutral ⚪), UI themes, and data exports.
+          1-Click import viral routines (Huberman, 75 Hard, Atomic Habits), customize prompts, and configure themes.
         </p>
+      </div>
+
+      {/* NEW FEATURE: Curated Routine Blueprints Library */}
+      <div className="craft-card p-5 space-y-4 border-2" style={{ borderColor: 'var(--accent-border)' }}>
+        <div className="flex items-center justify-between border-b border-zinc-850 pb-3">
+          <div className="flex items-center space-x-2.5">
+            <div 
+              className="p-2 rounded-xl border shrink-0"
+              style={{ backgroundColor: 'var(--accent-glow)', borderColor: 'var(--accent-border)', color: 'var(--accent)' }}
+            >
+              <Layers className="w-5 h-5" />
+            </div>
+            <div>
+              <h2 className="text-base font-extrabold text-zinc-100 font-ios-serif">
+                Routine Blueprints Library
+              </h2>
+              <p className="text-xs text-zinc-400 font-ios-sans">
+                Import complete science-backed habit stacks in 1 click.
+              </p>
+            </div>
+          </div>
+          <span className="text-[10px] font-bold font-ios-mono uppercase px-2 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-zinc-400">
+            Curated Packs
+          </span>
+        </div>
+
+        {/* Blueprint Cards Grid */}
+        <div className={`grid gap-4 ${isDesktop ? 'grid-cols-2' : 'grid-cols-1'}`}>
+          {ROUTINE_BLUEPRINTS.map((bp) => {
+            const isImporting = importingBlueprint === bp.id;
+
+            return (
+              <div 
+                key={bp.id}
+                className="p-4 rounded-2xl border border-zinc-850 bg-zinc-950/70 hover:border-zinc-750 transition-all space-y-3 flex flex-col justify-between shadow-sm"
+              >
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[10px] font-bold font-ios-mono uppercase px-2 py-0.5 rounded bg-teal-500/10 text-teal-400 border border-teal-500/20">
+                      {bp.badge}
+                    </span>
+                    <span className="text-[10px] font-ios-mono text-zinc-500">{bp.questions.length} Habits</span>
+                  </div>
+
+                  <h3 className="text-base font-bold text-zinc-100 font-ios-serif">{bp.title}</h3>
+                  <p className="text-xs text-zinc-400 font-ios-sans leading-relaxed">{bp.description}</p>
+
+                  <div className="pt-2 space-y-1">
+                    {bp.questions.slice(0, 3).map((q, idx) => (
+                      <div key={idx} className="flex items-center space-x-1.5 text-[11px] text-zinc-300 font-ios-sans">
+                        <span className="text-teal-400 font-bold">✓</span>
+                        <span className="truncate">{q.prompt}</span>
+                      </div>
+                    ))}
+                    {bp.questions.length > 3 && (
+                      <span className="text-[10px] text-zinc-500 font-ios-mono block pt-0.5">
+                        +{bp.questions.length - 3} more habits included
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => handleImportBlueprint(bp)}
+                  disabled={isImporting}
+                  style={{ background: 'var(--accent-gradient)', color: '#09090b' }}
+                  className="w-full py-2 rounded-xl font-bold text-xs flex items-center justify-center space-x-1.5 cursor-pointer shadow hover:opacity-95 transition-opacity disabled:opacity-50 font-ios-sans mt-2"
+                >
+                  {isImporting ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <>
+                      <Zap className="w-3.5 h-3.5" />
+                      <span>Import {bp.title.split(' ')[0]} Pack ✨</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       {/* Responsive Grid: 2-Column Split on 16:9 PC Studio, Single Column on Mobile */}
