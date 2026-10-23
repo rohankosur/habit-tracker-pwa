@@ -1,7 +1,6 @@
 'use client';
 
 import React from 'react';
-import { MessageSquare } from 'lucide-react';
 
 interface SavedEntriesProps {
   selectedDate: string;
@@ -15,17 +14,17 @@ export default function SavedEntries({
   answers,
 }: SavedEntriesProps) {
   return (
-    <div className="w-full bg-substrate-card backdrop-blur-md border border-substrate-border rounded-none p-4 corner-brackets relative">
+    <div className="w-full celestial-card rounded-none p-4 corner-brackets relative">
       <div className="corner-bracket-tr" />
       <div className="corner-bracket-bl" />
 
       {/* Header */}
       <div className="flex items-center justify-between border-b border-substrate-border pb-2.5">
-        <h3 className="font-serif tracking-wide text-sm uppercase text-gold font-semibold">
-          Saved Entries // {selectedDate}
+        <h3 className="font-serif text-xs uppercase tracking-[0.2em] text-gold font-semibold">
+          SAVED ENTRIES FOR {selectedDate}
         </h3>
         <span className="font-mono text-[10px] text-slate-500 uppercase tracking-widest">
-          {questions.length} Records
+          {questions.length} RECORDS
         </span>
       </div>
 

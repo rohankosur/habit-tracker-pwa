@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useDeviceLayout } from '@/contexts/DeviceLayoutContext';
 import { supabase } from '@/lib/supabase';
 import HeaderHUD from '@/components/HeaderHUD';
-import DailyProgress from '@/components/DailyProgress';
+import ChronoDial from '@/components/ChronoDial';
 import HabitList from '@/components/HabitList';
 import SavedEntries from '@/components/SavedEntries';
 import InstallPwaBanner from '@/components/InstallPwaBanner';
@@ -19,7 +19,7 @@ import {
   calculateUserLevel, calculateAchievementBadges, LevelInfo, ACCENT_THEMES, AchievementBadge
 } from '@/lib/gamification';
 import { 
-  Award, ShieldCheck, Lightbulb, Share2, Loader2, Trophy
+  ShieldCheck, Lightbulb, Loader2, Trophy
 } from 'lucide-react';
 
 type AutoSaveStatus = 'saved' | 'saving' | 'offline' | 'idle';
@@ -63,22 +63,12 @@ export default function Dashboard() {
   });
   const [motivationalQuote, setMotivationalQuote] = useState('');
   const [microInsight, setMicroInsight] = useState('');
-  const [copiedShare, setCopiedShare] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
 
   const getLocalTodayDateStr = () => {
     const dateObj = new Date();
     const yyyy = dateObj.getFullYear();
     const mm = String(dateObj.getMonth() + 1).padStart(2, '0');
-    const dd = String(dateObj.getDate()).padStart(2, '0');
-    return `${yyyy}-${mm}-${dd}`;
-  };
-
-  const getYesterdayDateStr = () => {
-    const d = new Date();
-    d.setDate(d.getDate() - 1);
-    const yyyy = d.getFullYear();
-    const mm = String(d.getMonth() + 1).padStart(2, '0');
     const dd = String(dateObj.getDate()).padStart(2, '0');
     return `${yyyy}-${mm}-${dd}`;
   };
@@ -223,11 +213,9 @@ export default function Dashboard() {
       
       setAutoSaveStatus('saving');
 
-      // 1. Save to account-isolated local storage draft immediately
       const draftKey = getDraftStorageKey(user.id, selectedDate);
       localStorage.setItem(draftKey, JSON.stringify(updatedAnswers));
 
-      // 2. Perform Supabase upsert for user.id + date
       try {
         const payload = {
           user_id: user.id,
@@ -325,11 +313,6 @@ export default function Dashboard() {
     }
   };
 
-  const handleShareStreak = async () => {
-    triggerHaptic(20);
-    setShowShareModal(true);
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user || !selectedDate) return;
@@ -401,10 +384,11 @@ export default function Dashboard() {
   const loggedCount = questions.filter(
     (q) => answers[q.id] !== undefined && answers[q.id] !== null && answers[q.id] !== ''
   ).length;
-  const completionPercentage = questions.length > 0 ? (loggedCount / questions.length) * 100 : 0;
+  const completionRate = questions.length > 0 ? loggedCount / questions.length : 0;
+  const isStamped = !isEditing && Boolean(log);
 
   return (
-    <div className="space-y-4 pb-8">
+    <div className="w-full space-y-4 pb-8 overflow-x-hidden">
       {/* Precision Header HUD (Slim 44px Fixed Status Bar) */}
       <HeaderHUD
         selectedDate={selectedDate}
@@ -434,13 +418,13 @@ export default function Dashboard() {
       />
 
       {/* Main Grid: Desktop 16:9 Studio 2-Column Split vs Mobile Single-Column */}
-      <div className={`grid gap-4 ${isDesktop ? 'grid-cols-12' : 'grid-cols-1'}`}>
+      <div className={`grid gap-5 ${isDesktop ? 'grid-cols-12' : 'grid-cols-1'} overflow-x-hidden`}>
         
         {/* Left Column (Desktop 16:9 Studio Stats Sidebar) */}
         {isDesktop && (
           <div className="col-span-4 space-y-4">
-            {/* Level Progress Blueprint Card */}
-            <div className="bg-substrate-card backdrop-blur-md border border-substrate-border rounded-none p-4 corner-brackets relative space-y-2">
+            {/* Level Progress Celestial Card */}
+            <div className="celestial-card rounded-none p-4 corner-brackets relative space-y-2">
               <div className="corner-bracket-tr" />
               <div className="corner-bracket-bl" />
               
@@ -466,8 +450,8 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* Achievement Vault Blueprint Card */}
-            <div className="bg-substrate-card backdrop-blur-md border border-substrate-border rounded-none p-4 corner-brackets relative space-y-2.5">
+            {/* Achievement Vault Celestial Card */}
+            <div className="celestial-card rounded-none p-4 corner-brackets relative space-y-2.5">
               <div className="corner-bracket-tr" />
               <div className="corner-bracket-bl" />
 
@@ -484,7 +468,7 @@ export default function Dashboard() {
                 {badges.map((b) => (
                   <div
                     key={b.id}
-                    className={`p-2 border text-center transition-all ${
+                    className={`p-2 border rounded-none text-center transition-all ${
                       b.unlocked
                         ? 'bg-gold/10 border-gold/40 text-gold-bright'
                         : 'bg-substrate-bg/40 border-substrate-border/50 text-slate-600 opacity-30'
@@ -501,7 +485,7 @@ export default function Dashboard() {
             </div>
 
             {/* Streak Grace Freezes */}
-            <div className="bg-substrate-card backdrop-blur-md border border-substrate-border rounded-none p-3.5 text-xs font-mono flex items-center justify-between corner-brackets relative">
+            <div className="celestial-card rounded-none p-3.5 text-xs font-mono flex items-center justify-between corner-brackets relative">
               <div className="corner-bracket-tr" />
               <div className="corner-bracket-bl" />
               <div className="flex items-center space-x-1.5 text-slate-300">
@@ -513,7 +497,7 @@ export default function Dashboard() {
 
             {/* Micro Insight */}
             {microInsight && (
-              <div className="bg-substrate-card backdrop-blur-md border border-substrate-border rounded-none p-3.5 text-xs text-slate-300 flex items-start space-x-2.5 corner-brackets relative">
+              <div className="celestial-card rounded-none p-3.5 text-xs text-slate-300 flex items-start space-x-2.5 corner-brackets relative">
                 <div className="corner-bracket-tr" />
                 <div className="corner-bracket-bl" />
                 <Lightbulb className="w-3.5 h-3.5 text-gold shrink-0 mt-0.5" strokeWidth={1.5} />
@@ -526,16 +510,14 @@ export default function Dashboard() {
         {/* Main Workspace Column */}
         <div className={isDesktop ? 'col-span-8 space-y-4' : 'col-span-1 space-y-4'}>
           
-          {/* Main Status & Chrono Dial */}
-          <DailyProgress
-            isCompleted={!isEditing && Boolean(log)}
-            completionPercentage={completionPercentage}
-            completedCount={loggedCount}
-            totalCount={questions.length}
-            statusLine={motivationalQuote || activeThemeObj.nicheQuote}
-            selectedDate={selectedDate}
-            isEditing={isEditing}
-            onModifyEntry={() => {
+          {/* Central Astrolabe Radial Chrono Dial */}
+          <ChronoDial
+            completionRate={completionRate}
+            isStamped={isStamped}
+            totalHabits={questions.length}
+            completedHabits={loggedCount}
+            systemMessage={motivationalQuote || activeThemeObj.nicheQuote || "System memory synchronized. Execution loop complete."}
+            onModify={() => {
               triggerHaptic(10);
               setIsEditing(true);
             }}

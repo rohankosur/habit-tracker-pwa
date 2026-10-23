@@ -7,6 +7,10 @@
   --color-substrate-border: rgba(212, 175, 55, 0.18);
   --color-substrate-borderActive: rgba(212, 175, 55, 0.5);
 
+  --color-cosmos-bg: #050711;
+  --color-cosmos-card: rgba(10, 14, 30, 0.72);
+  --color-cosmos-border: rgba(212, 175, 55, 0.18);
+
   --color-gold: #D4AF37;
   --color-gold-dim: #8A7322;
   --color-gold-bright: #F3E5AB;
@@ -69,17 +73,19 @@
   background-size: 32px 32px;
 }
 
-/* Blueprint Glassmorphic Card */
+/* Celestial & Blueprint Glassmorphic Card */
+.celestial-card,
 .blueprint-card {
   background-color: rgba(10, 14, 30, 0.72);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(212, 175, 55, 0.18);
-  border-radius: 0px;
+  border-radius: 0px !important;
   position: relative;
   transition: border-color 0.2s ease, background-color 0.2s ease;
 }
 
+.celestial-card:hover,
 .blueprint-card:hover {
   background-color: rgba(16, 22, 46, 0.85);
   border-color: rgba(212, 175, 55, 0.4);
@@ -141,13 +147,13 @@
   transform: rotate(45deg);
 }
 
-/* Legacy craft-card compatibility mapping to blueprint styling */
+/* Legacy craft-card compatibility mapping to celestial styling */
 .craft-card {
   background-color: rgba(10, 14, 30, 0.72);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(212, 175, 55, 0.18);
-  border-radius: 0px;
+  border-radius: 0px !important;
   box-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.45);
   transition: border-color 0.2s ease, background-color 0.2s ease;
 }

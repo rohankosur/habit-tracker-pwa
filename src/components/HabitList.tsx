@@ -36,16 +36,16 @@ export default function HabitList({
 }: HabitListProps) {
   return (
     <form onSubmit={onSubmit} className="space-y-4">
-      {/* Habit Deck Surface Card */}
-      <div className="w-full bg-substrate-card backdrop-blur-md border border-substrate-border rounded-none p-4 corner-brackets relative">
+      {/* Habit Deck Surface Celestial Card */}
+      <div className="w-full celestial-card rounded-none p-4 corner-brackets relative">
         <div className="corner-bracket-tr" />
         <div className="corner-bracket-bl" />
 
         {/* Section Header */}
         <div className="flex items-center justify-between border-b border-substrate-border pb-3 mb-2">
           <div className="space-y-0.5">
-            <h3 className="font-serif tracking-wide text-sm uppercase text-gold font-semibold">
-              Habit Deck // {isTodaySelected ? 'Active Log' : selectedDate}
+            <h3 className="font-serif tracking-wide text-xs uppercase text-gold font-semibold">
+              HABIT DECK // {isTodaySelected ? 'ACTIVE LOG' : selectedDate}
             </h3>
             <span className="font-mono text-[10px] text-slate-500 uppercase tracking-widest block">
               {questions.length} Metrics in Sequence

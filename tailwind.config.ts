@@ -16,6 +16,11 @@ const config: Config = {
           border: 'rgba(212, 175, 55, 0.18)',
           borderActive: 'rgba(212, 175, 55, 0.5)',
         },
+        cosmos: {
+          bg: '#050711',
+          card: 'rgba(10, 14, 30, 0.72)',
+          border: 'rgba(212, 175, 55, 0.18)',
+        },
         gold: {
           DEFAULT: '#D4AF37',
           dim: '#8A7322',
