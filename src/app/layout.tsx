@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono, Caveat, Lora } from "next/font/google";
+import { Inter, JetBrains_Mono, Playfair_Display } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/contexts/AuthContext";
 import ThemeProvider from "@/components/ThemeProvider";
@@ -9,29 +9,24 @@ import Navigation from "@/components/Navigation";
 import AmbientParticles from "@/components/AmbientParticles";
 import DeviceMainContainer from "@/components/DeviceMainContainer";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const fontSans = Inter({
+  variable: "--font-sans",
   subsets: ["latin"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const fontMono = JetBrains_Mono({
+  variable: "--font-mono",
   subsets: ["latin"],
 });
 
-const caveat = Caveat({
-  variable: "--font-caveat",
-  subsets: ["latin"],
-});
-
-const lora = Lora({
-  variable: "--font-lora",
+const fontSerif = Playfair_Display({
+  variable: "--font-serif",
   subsets: ["latin"],
 });
 
 export const metadata: Metadata = {
   title: "Reflect | Daily Habit & Reflection Tracker",
-  description: "Track habits, customize questions, and get smart notifications.",
+  description: "Precision technical blueprint habit and reflection tracker.",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
@@ -44,7 +39,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0c0d0e",
+  themeColor: "#050711",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
@@ -59,9 +54,9 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} ${caveat.variable} ${lora.variable} h-full antialiased max-w-full overflow-x-hidden`}
+      className={`${fontSans.variable} ${fontMono.variable} ${fontSerif.variable} h-full antialiased max-w-full overflow-x-hidden`}
     >
-      <body className="min-h-full flex flex-col bg-zinc-950 text-zinc-50 font-sans journal-grid relative max-w-full overflow-x-hidden touch-pan-y">
+      <body className="min-h-full flex flex-col bg-substrate-bg text-slate-200 font-sans relative max-w-full overflow-x-hidden touch-pan-y">
         <AuthProvider>
           <DeviceLayoutProvider>
             <ThemeProvider>

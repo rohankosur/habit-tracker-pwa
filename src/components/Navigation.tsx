@@ -6,9 +6,10 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useDeviceLayout, LayoutMode } from '@/contexts/DeviceLayoutContext';
 import { 
   CheckSquare, Calendar, BarChart2, Target, Settings, 
-  LogOut, Monitor, Smartphone, Zap, Wifi, WifiOff
+  LogOut, Monitor, Smartphone, Zap
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import BottomNav from './BottomNav';
 
 export default function Navigation() {
   const pathname = usePathname();
@@ -52,32 +53,22 @@ export default function Navigation() {
 
   return (
     <>
-      {/* Top Header Bar */}
-      <header className="sticky top-0 z-40 w-full backdrop-blur-xl bg-zinc-950/85 border-b border-zinc-850/80 transition-all">
-        <div 
-          className={`mx-auto px-4 sm:px-6 flex h-14 items-center justify-between gap-3 transition-all ${
-            isDesktop ? 'max-w-7xl' : 'max-w-lg'
-          }`}
-        >
-          {/* App Logo */}
-          <Link href="/" className="flex items-center space-x-2.5 group shrink-0">
-            <div 
-              className="w-8 h-8 rounded-xl border flex items-center justify-center transition-all group-hover:scale-105 shadow-sm"
-              style={{ backgroundColor: 'var(--accent-glow)', borderColor: 'var(--accent-border)', color: 'var(--accent)' }}
-            >
-              <span className="font-extrabold text-base font-handwritten">R</span>
-            </div>
-            <div className="flex flex-col">
-              <span className="font-extrabold text-sm tracking-tight text-zinc-100 font-ios-serif leading-none">Reflect</span>
-              <span className="text-[9px] font-ios-mono text-zinc-500 font-semibold tracking-wider uppercase mt-0.5">
-                {isDesktop ? '16:9 PC Studio' : 'Mobile PWA'}
+      {/* Desktop 16:9 Studio Navigation Header (44px) */}
+      {isDesktop && (
+        <header className="sticky top-0 z-40 w-full h-[44px] backdrop-blur-md bg-substrate-bg/90 border-b border-substrate-border flex items-center select-none transition-all">
+          <div className="mx-auto px-6 w-full max-w-7xl flex items-center justify-between gap-4">
+            {/* Identity */}
+            <Link href="/" className="flex items-center space-x-2 shrink-0 group">
+              <span className="font-mono text-xs tracking-[0.25em] text-gold font-bold uppercase hover:text-gold-bright transition-colors">
+                REFLECT
               </span>
-            </div>
-          </Link>
+              <span className="font-mono text-[9px] text-slate-500 uppercase tracking-widest border-l border-substrate-border pl-2">
+                16:9 STUDIO
+              </span>
+            </Link>
 
-          {/* Desktop Only Navigation Links (Active on PC 16:9 Desktop Studio Mode) */}
-          {isDesktop && (
-            <nav className="flex items-center space-x-1 font-ios-sans">
+            {/* Center: Nav Items */}
+            <nav className="flex items-center space-x-1 font-mono text-xs">
               {navItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = pathname === item.href;
@@ -86,105 +77,65 @@ export default function Navigation() {
                   <Link
                     key={item.href}
                     href={item.href}
-                    style={isActive ? { backgroundColor: 'var(--accent-glow)', color: 'var(--accent)', borderColor: 'var(--accent-border)' } : {}}
-                    className={`relative px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center space-x-1.5 cursor-pointer border ${
+                    className={`relative px-3 py-1.5 transition-colors flex items-center space-x-1.5 cursor-pointer uppercase tracking-wider text-[11px] ${
                       isActive
-                        ? 'shadow-sm'
-                        : 'border-transparent text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/60'
+                        ? 'text-gold'
+                        : 'text-slate-400 hover:text-slate-200'
                     }`}
                   >
-                    <Icon className={`w-3.5 h-3.5 ${isActive ? 'scale-110' : ''}`} />
+                    <Icon className="w-3.5 h-3.5" strokeWidth={1.5} />
                     <span>{item.label}</span>
 
                     {isActive && (
-                      <div 
-                        className="absolute -bottom-1 left-3 right-3 h-0.5 rounded-full"
-                        style={{ background: 'var(--accent-gradient)' }}
-                      />
+                      <div className="absolute bottom-0 left-2 right-2 h-[1.5px] bg-gold shadow-[0_0_8px_rgba(212,175,55,0.6)]" />
                     )}
                   </Link>
                 );
               })}
             </nav>
-          )}
 
-          {/* Right Status Toolbar */}
-          <div className="flex items-center space-x-2 shrink-0">
-            {/* Live Sync Status */}
-            <div 
-              className="p-1.5 rounded-xl border bg-zinc-950 text-xs flex items-center justify-center border-zinc-850"
-              title={isOnline ? 'Cloud Sync Active (Online)' : 'Offline Mode (Local Auto-Save Active)'}
-            >
-              {isOnline ? (
-                <Wifi className="w-3.5 h-3.5 text-emerald-400" />
-              ) : (
-                <WifiOff className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
+            {/* Right Status Toolbar */}
+            <div className="flex items-center space-x-3 shrink-0">
+              {/* Online Indicator */}
+              <div
+                className={`w-1.5 h-1.5 rounded-full ${
+                  isOnline
+                    ? 'bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)]'
+                    : 'bg-amber-400 animate-pulse shadow-[0_0_6px_rgba(251,191,36,0.8)]'
+                }`}
+                title={isOnline ? 'Online (Cloud Sync Active)' : 'Offline (Substrate Cache Active)'}
+              />
+
+              {/* Layout Mode Switcher */}
+              <button
+                type="button"
+                onClick={cycleLayoutMode}
+                className="px-2 py-0.5 text-[10px] border border-substrate-border bg-substrate-card text-slate-300 hover:text-gold transition-colors flex items-center space-x-1 cursor-pointer font-mono uppercase tracking-wider"
+                title={`Layout Mode: ${layoutMode.toUpperCase()} (Toggle Auto / Mobile / PC)`}
+              >
+                {layoutMode === 'auto' && <Zap className="w-3 h-3 text-gold" strokeWidth={1.5} />}
+                {layoutMode === 'mobile' && <Smartphone className="w-3 h-3 text-gold" strokeWidth={1.5} />}
+                {layoutMode === 'desktop' && <Monitor className="w-3 h-3 text-gold" strokeWidth={1.5} />}
+                <span>{layoutMode}</span>
+              </button>
+
+              {/* Sign Out */}
+              {user && (
+                <button
+                  onClick={() => signOut()}
+                  className="p-1 text-slate-500 hover:text-red-400 transition-colors cursor-pointer"
+                  title="Sign Out"
+                >
+                  <LogOut className="w-3.5 h-3.5" strokeWidth={1.5} />
+                </button>
               )}
             </div>
-
-            {/* Layout Mode Switcher Toggle */}
-            <button
-              type="button"
-              onClick={cycleLayoutMode}
-              className="px-2.5 py-1 rounded-xl text-[10px] font-bold border border-zinc-850 bg-zinc-950 text-zinc-300 hover:text-zinc-100 transition-colors flex items-center space-x-1.5 cursor-pointer font-ios-mono"
-              title={`Layout Mode: ${layoutMode.toUpperCase()} (Click to toggle Auto / Mobile 📱 / 16:9 PC 💻)`}
-            >
-              {layoutMode === 'auto' && <Zap className="w-3 h-3 text-amber-400" />}
-              {layoutMode === 'mobile' && <Smartphone className="w-3 h-3 text-teal-400" />}
-              {layoutMode === 'desktop' && <Monitor className="w-3 h-3 text-sky-400" />}
-              <span className="capitalize">{layoutMode === 'auto' ? `Auto (${activeDevice === 'desktop' ? 'PC' : 'Mobile'})` : layoutMode}</span>
-            </button>
-
-            {/* Sign Out Button */}
-            {user && (
-              <button
-                onClick={() => signOut()}
-                className="p-1.5 text-zinc-500 hover:text-red-400 rounded-xl hover:bg-zinc-900 border border-transparent hover:border-zinc-800 transition-colors cursor-pointer"
-                title="Sign Out"
-              >
-                <LogOut className="w-3.5 h-3.5" />
-              </button>
-            )}
           </div>
-        </div>
-      </header>
-
-      {/* Mobile iOS Fixed Bottom Tab Bar (Strictly Active on Mobile Mode) */}
-      {isMobile && (
-        <div className="fixed bottom-0 left-0 right-0 z-50 backdrop-blur-2xl bg-zinc-950/90 border-t border-zinc-850/90 px-3 py-1.5 pb-[max(0.6rem,env(safe-area-inset-bottom))] shadow-2xl transition-all">
-          <nav className="grid grid-cols-5 gap-1 font-ios-sans max-w-md mx-auto">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = pathname === item.href;
-
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  style={isActive ? { color: 'var(--accent)' } : {}}
-                  className={`flex flex-col items-center justify-center py-1 rounded-xl transition-all cursor-pointer ${
-                    isActive
-                      ? 'font-extrabold scale-105'
-                      : 'text-zinc-500 hover:text-zinc-300'
-                  }`}
-                >
-                  <div 
-                    className={`p-1 rounded-lg transition-all ${
-                      isActive ? 'border shadow-sm' : ''
-                    }`}
-                    style={isActive ? { backgroundColor: 'var(--accent-glow)', borderColor: 'var(--accent-border)' } : {}}
-                  >
-                    <Icon className={`w-4 h-4 ${isActive ? 'scale-110' : ''}`} />
-                  </div>
-                  <span className="text-[10px] tracking-tight font-ios-mono mt-0.5 leading-none">
-                    {item.label}
-                  </span>
-                </Link>
-              );
-            })}
-          </nav>
-        </div>
+        </header>
       )}
+
+      {/* Mobile Bottom Dock (52px) */}
+      {isMobile && <BottomNav />}
     </>
   );
 }

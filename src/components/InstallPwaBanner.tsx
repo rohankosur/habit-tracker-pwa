@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Smartphone, Download, X, Share, PlusSquare, Check } from 'lucide-react';
+import { Smartphone, Download, X, Share, PlusSquare } from 'lucide-react';
 import { triggerHaptic } from '@/lib/feedback';
 
 export default function InstallPwaBanner() {
@@ -12,7 +12,6 @@ export default function InstallPwaBanner() {
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    // Check if already in standalone PWA mode
     const isStandalone = 
       window.matchMedia('(display-mode: standalone)').matches || 
       (window.navigator as any).standalone === true;
@@ -26,7 +25,6 @@ export default function InstallPwaBanner() {
     const isIosDevice = /iphone|ipad|ipod/.test(userAgent);
     setIsIOS(isIosDevice);
 
-    // Show after 3 seconds of usage
     const timer = setTimeout(() => {
       setShowBanner(true);
     }, 3000);
@@ -65,31 +63,33 @@ export default function InstallPwaBanner() {
   if (!showBanner) return null;
 
   return (
-    <div className="craft-card p-4 border border-teal-500/35 bg-zinc-950/95 my-4 animate-fade-in relative shadow-xl">
+    <div className="w-full bg-substrate-card backdrop-blur-md border border-substrate-border rounded-none p-3.5 my-3 corner-brackets relative animate-fade-in select-none">
+      <div className="corner-bracket-tr" />
+      <div className="corner-bracket-bl" />
+
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-start space-x-3">
-          <div 
-            className="p-2 rounded-xl border shrink-0"
-            style={{ backgroundColor: 'var(--accent-glow)', borderColor: 'var(--accent-border)', color: 'var(--accent)' }}
-          >
-            <Smartphone className="w-5 h-5" />
+          <div className="p-1.5 border border-substrate-border bg-substrate-bg text-gold shrink-0">
+            <Smartphone className="w-4 h-4" strokeWidth={1.5} />
           </div>
 
           <div className="space-y-1">
             <div className="flex items-center space-x-2">
-              <h4 className="text-sm font-extrabold text-zinc-100 font-ios-serif">Install Reflect as Native App</h4>
-              <span className="text-[9px] font-bold font-ios-mono uppercase px-1.5 py-0.5 rounded bg-teal-500/20 text-teal-300">
-                0 MB • Offline Ready
+              <h4 className="font-serif text-xs uppercase tracking-wider text-gold font-bold">
+                Install Precision PWA
+              </h4>
+              <span className="font-mono text-[9px] uppercase tracking-widest px-1.5 py-0.2 bg-gold/10 text-gold-bright border border-gold/20">
+                0 MB • OFFLINE
               </span>
             </div>
 
             {isIOS ? (
-              <p className="text-xs text-zinc-400 font-ios-sans leading-relaxed">
-                Tap the <Share className="w-3.5 h-3.5 inline mx-1 text-teal-400" /> Share button in Safari, then select <strong className="text-zinc-200">"Add to Home Screen" <PlusSquare className="w-3.5 h-3.5 inline mx-0.5" /></strong>.
+              <p className="font-mono text-[11px] text-slate-400 leading-relaxed">
+                Safari Share <Share className="w-3 h-3 inline mx-1 text-gold" /> → <strong className="text-slate-200">"Add to Home Screen" <PlusSquare className="w-3 h-3 inline" /></strong>.
               </p>
             ) : (
-              <p className="text-xs text-zinc-400 font-ios-sans leading-relaxed">
-                Add to your home screen for full-screen offline habit tracking and instant push chimes.
+              <p className="font-mono text-[11px] text-slate-400 leading-relaxed">
+                Add to your home screen for full-screen offline execution and native haptics.
               </p>
             )}
           </div>
@@ -99,20 +99,19 @@ export default function InstallPwaBanner() {
           {!isIOS && deferredPrompt && (
             <button
               onClick={handleInstallClick}
-              style={{ background: 'var(--accent-gradient)', color: '#09090b' }}
-              className="px-3 py-1.5 rounded-lg font-bold text-xs flex items-center space-x-1 cursor-pointer shadow"
+              className="py-1 px-3 border border-substrate-border hover:border-gold bg-substrate-bg text-gold text-[10px] font-mono tracking-wider uppercase transition-colors flex items-center space-x-1 cursor-pointer"
             >
-              <Download className="w-3.5 h-3.5" />
+              <Download className="w-3 h-3" />
               <span>Install</span>
             </button>
           )}
 
           <button
             onClick={handleDismiss}
-            className="p-1 text-zinc-500 hover:text-zinc-300 rounded-lg hover:bg-zinc-900 transition-colors cursor-pointer"
+            className="p-1 text-slate-500 hover:text-slate-300 transition-colors cursor-pointer"
             title="Dismiss"
           >
-            <X className="w-4 h-4" />
+            <X className="w-3.5 h-3.5" />
           </button>
         </div>
       </div>
