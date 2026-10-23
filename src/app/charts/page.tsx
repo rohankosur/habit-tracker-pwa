@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDeviceLayout } from '@/contexts/DeviceLayoutContext';
 import { supabase } from '@/lib/supabase';
-import { calculateLevel, calculateStreak } from '@/lib/gamification';
+import { calculateUserLevel } from '@/lib/gamification';
+import { calculateStreakWithFreezes } from '@/lib/feedback';
 import ShareableCardModal from '@/components/ShareableCardModal';
 import { 
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, 
@@ -472,8 +473,8 @@ export default function ChartsPage() {
   const monthYearLabel = calendarDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
   const datesList = logs.map((l) => l.date);
-  const currentStreak = calculateStreak(datesList);
-  const levelInfo = calculateLevel(metrics.totalLogs, currentStreak);
+  const currentStreak = calculateStreakWithFreezes(datesList).currentStreak;
+  const levelInfo = calculateUserLevel(logs);
 
   const pieData = [
     { name: 'Completed Days', value: metrics.consistencyRate },
