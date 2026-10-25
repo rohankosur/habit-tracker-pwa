@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useDeviceLayout } from '@/contexts/DeviceLayoutContext';
 import { supabase } from '@/lib/supabase';
 import { triggerVariableReward, triggerHaptic, playCompletionChime } from '@/lib/feedback';
+import { playMechanicalTick, playCelestialLockGong } from '@/lib/cosmicAudio';
 import { 
   Target, Plus, Trash2, CheckCircle2, Calendar, 
   Sparkles, Layers, Award, Loader2, ArrowRight, 
@@ -35,14 +36,12 @@ export default function GoalsPage() {
     if (!user) return;
     setLoading(true);
     try {
-      // Fetch Questions
       const { data: qData } = await supabase
         .from('questions')
         .select('*')
         .eq('user_id', user.id);
       setQuestions(qData || []);
 
-      // Fetch Goals
       const { data: gData, error: gError } = await supabase
         .from('goals')
         .select('*')
@@ -50,7 +49,7 @@ export default function GoalsPage() {
         .order('created_at', { ascending: false });
 
       if (gError) {
-        console.warn('Goals table might not be initialized yet in Supabase:', gError.message);
+        console.warn('Goals notice:', gError.message);
         setGoals([]);
       } else {
         setGoals(gData || []);
@@ -69,34 +68,35 @@ export default function GoalsPage() {
   const handleCreateGoal = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user || !title.trim()) return;
-    setCreating(true);
 
+    setCreating(true);
     try {
-      const payload: any = {
+      const newGoal = {
         user_id: user.id,
         title: title.trim(),
         category,
-        target_value: Number(targetValue) || 100,
+        target_value: Number(targetValue) || 10,
         current_value: 0,
         unit: unit.trim() || 'days',
         target_date: targetDate || null,
-        linked_question_id: linkedQuestionId || null,
         habit_stack: habitStack.trim() || null,
+        linked_question_id: linkedQuestionId || null,
       };
 
       const { data, error } = await supabase
         .from('goals')
-        .insert(payload)
+        .insert(newGoal)
         .select()
         .single();
 
       if (error) throw error;
 
+      setGoals((prev) => [data, ...prev]);
       triggerVariableReward();
-      playCompletionChime();
+      playCelestialLockGong();
       triggerHaptic(30);
 
-      setGoals((prev) => [data, ...prev]);
+      // Reset Form
       setTitle('');
       setTargetValue('30');
       setUnit('days');
@@ -105,13 +105,14 @@ export default function GoalsPage() {
       setLinkedQuestionId('');
       setShowForm(false);
     } catch (err: any) {
-      alert('Failed to create goal: ' + err.message);
+      alert('Failed to forge celestial goal: ' + err.message);
     } finally {
       setCreating(false);
     }
   };
 
   const handleUpdateProgress = async (goalId: string, increment: number) => {
+    playMechanicalTick();
     triggerHaptic(15);
     const goal = goals.find((g) => g.id === goalId);
     if (!goal) return;
@@ -120,7 +121,6 @@ export default function GoalsPage() {
     const isNowCompleted = newCurrent >= goal.target_value && goal.current_value < goal.target_value;
 
     try {
-      // Optimistic Update
       setGoals((prev) =>
         prev.map((g) => (g.id === goalId ? { ...g, current_value: newCurrent } : g))
       );
@@ -135,6 +135,7 @@ export default function GoalsPage() {
       if (isNowCompleted) {
         triggerVariableReward();
         playCompletionChime();
+        playCelestialLockGong();
         triggerHaptic(50);
       }
     } catch (err: any) {
@@ -143,7 +144,7 @@ export default function GoalsPage() {
   };
 
   const handleDeleteGoal = async (goalId: string) => {
-    if (!confirm('Are you sure you want to delete this goal milestone?')) return;
+    if (!confirm('Are you sure you want to decommission this orbit milestone?')) return;
     try {
       setGoals((prev) => prev.filter((g) => g.id !== goalId));
       await supabase.from('goals').delete().eq('id', goalId);
@@ -155,8 +156,10 @@ export default function GoalsPage() {
   if (authLoading || loading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[50vh] space-y-4">
-        <Loader2 className="w-8 h-8 animate-spin" style={{ color: 'var(--accent)' }} />
-        <span className="text-zinc-500 text-xs font-handwritten text-lg">Retrieving goal milestones...</span>
+        <Loader2 className="w-8 h-8 animate-spin text-gold" />
+        <span className="font-mono text-xs uppercase tracking-widest text-slate-400">
+          Retrieving Celestial Orbit Milestones...
+        </span>
       </div>
     );
   }
@@ -164,61 +167,66 @@ export default function GoalsPage() {
   const isDesktop = activeDevice === 'desktop';
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div className="space-y-1">
           <div className="flex items-center space-x-2">
-            <Target className="w-4 h-4" style={{ color: 'var(--accent)' }} />
-            <span className="text-xs uppercase tracking-widest font-extrabold font-ios-mono" style={{ color: 'var(--accent)' }}>
-              Life OKRs & Routines
+            <Target className="w-4 h-4 text-gold" />
+            <span className="text-xs uppercase tracking-widest font-bold font-mono text-gold">
+              Celestial Orbits & Habit Stacks
             </span>
           </div>
-          <h1 className="text-3xl font-extrabold text-zinc-50 tracking-tight font-ios-serif">
-            Goal Milestones
+          <h1 className="text-3xl font-light text-slate-100 tracking-tight font-serif">
+            Milestones & OKRs
           </h1>
-          <p className="text-base text-zinc-400 font-handwritten text-xl leading-snug">
-            Set quarterly goals, track habits, and stack routines to lock in long-term momentum.
+          <p className="text-xs text-slate-400 font-mono leading-relaxed">
+            Propel long-term celestial goals, stack atomic habits, and anchor daily routines.
           </p>
         </div>
 
         <button
           onClick={() => setShowForm(!showForm)}
-          style={{ background: 'var(--accent-gradient)', color: '#09090b' }}
-          className="glow-btn px-4 py-2.5 rounded-xl font-bold text-xs flex items-center space-x-1.5 cursor-pointer shadow-lg shrink-0 font-ios-sans"
+          className="px-4 py-2 bg-substrate-card hover:bg-gold/15 border border-gold text-gold font-mono text-xs uppercase tracking-widest transition-all shadow-[0_0_12px_rgba(212,175,55,0.2)] flex items-center space-x-1.5 shrink-0"
         >
-          <Plus className="w-4 h-4" />
-          <span>New Goal</span>
+          <Plus className="w-3.5 h-3.5" />
+          <span>New Orbit</span>
         </button>
       </div>
 
-      {/* Goal Creation Form Drawer / Modal */}
+      {/* Goal Creation Form */}
       {showForm && (
-        <form onSubmit={handleCreateGoal} className="craft-card p-6 space-y-4 border-2 animate-fade-in" style={{ borderColor: 'var(--accent-border)' }}>
-          <div className="flex items-center justify-between border-b border-zinc-850 pb-3">
-            <h2 className="text-base font-bold text-zinc-100 font-ios-serif">Create Life Goal & Habit Stack</h2>
-            <span className="text-xs text-zinc-500 font-ios-mono">Quarterly / Annual</span>
+        <form onSubmit={handleCreateGoal} className="bg-substrate-card/90 border border-gold/40 p-6 space-y-4 shadow-2xl backdrop-blur-md animate-fade-in">
+          <div className="flex items-center justify-between border-b border-substrate-border pb-3">
+            <h2 className="text-sm font-serif uppercase tracking-widest text-gold font-semibold">
+              Chart New Orbit Milestone
+            </h2>
+            <span className="text-[10px] text-slate-400 font-mono uppercase">Atomic System</span>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="sm:col-span-2 space-y-1">
-              <label className="block text-xs font-bold text-zinc-400 font-ios-mono uppercase">Goal Title</label>
+              <label className="block text-[10px] font-mono text-slate-400 uppercase tracking-widest">
+                Orbit Title
+              </label>
               <input
                 type="text"
                 required
-                placeholder="e.g. Read 12 books or Run 100 miles this year"
+                placeholder="e.g. Read 12 Books or Complete 100 Cold Showers"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                className="w-full px-3.5 py-2.5 bg-zinc-950/70 border border-zinc-800 rounded-xl text-zinc-200 focus:outline-none text-sm font-ios-serif"
+                className="w-full px-3 py-2 bg-substrate-bg/80 border border-substrate-border text-slate-200 focus:outline-none focus:border-gold text-xs font-mono"
               />
             </div>
 
             <div className="space-y-1">
-              <label className="block text-xs font-bold text-zinc-400 font-ios-mono uppercase">Category</label>
+              <label className="block text-[10px] font-mono text-slate-400 uppercase tracking-widest">
+                Category
+              </label>
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
-                className="w-full px-3.5 py-2.5 bg-zinc-950/70 border border-zinc-800 rounded-xl text-zinc-200 focus:outline-none text-sm font-ios-sans cursor-pointer"
+                className="w-full px-3 py-2 bg-substrate-bg/80 border border-substrate-border text-slate-200 focus:outline-none focus:border-gold text-xs font-mono cursor-pointer"
               >
                 {CATEGORIES.map((c) => (
                   <option key={c} value={c}>{c}</option>
@@ -227,65 +235,52 @@ export default function GoalsPage() {
             </div>
 
             <div className="space-y-1">
-              <label className="block text-xs font-bold text-zinc-400 font-ios-mono uppercase">Target Deadline Date</label>
-              <input
-                type="date"
-                value={targetDate}
-                onChange={(e) => setTargetDate(e.target.value)}
-                className="w-full px-3.5 py-2.5 bg-zinc-950/70 border border-zinc-800 rounded-xl text-zinc-200 focus:outline-none text-sm font-ios-mono cursor-pointer"
-              />
+              <label className="block text-[10px] font-mono text-slate-400 uppercase tracking-widest">
+                Target Units
+              </label>
+              <div className="flex space-x-2">
+                <input
+                  type="number"
+                  min="1"
+                  required
+                  value={targetValue}
+                  onChange={(e) => setTargetValue(e.target.value)}
+                  className="w-24 px-3 py-2 bg-substrate-bg/80 border border-substrate-border text-slate-200 focus:outline-none focus:border-gold text-xs font-mono"
+                />
+                <input
+                  type="text"
+                  placeholder="unit (e.g. days, books)"
+                  value={unit}
+                  onChange={(e) => setUnit(e.target.value)}
+                  className="flex-1 px-3 py-2 bg-substrate-bg/80 border border-substrate-border text-slate-200 focus:outline-none focus:border-gold text-xs font-mono"
+                />
+              </div>
             </div>
 
-            <div className="space-y-1">
-              <label className="block text-xs font-bold text-zinc-400 font-ios-mono uppercase">Target Amount</label>
-              <input
-                type="number"
-                required
-                value={targetValue}
-                onChange={(e) => setTargetValue(e.target.value)}
-                placeholder="e.g. 100"
-                className="w-full px-3.5 py-2.5 bg-zinc-950/70 border border-zinc-800 rounded-xl text-zinc-200 focus:outline-none text-sm font-ios-mono"
-              />
-            </div>
-
-            <div className="space-y-1">
-              <label className="block text-xs font-bold text-zinc-400 font-ios-mono uppercase">Unit Label</label>
-              <input
-                type="text"
-                required
-                value={unit}
-                onChange={(e) => setUnit(e.target.value)}
-                placeholder="e.g. pages, miles, days, hrs"
-                className="w-full px-3.5 py-2.5 bg-zinc-950/70 border border-zinc-800 rounded-xl text-zinc-200 focus:outline-none text-sm font-ios-mono"
-              />
-            </div>
-
-            {/* Habit Stacking Formula */}
             <div className="sm:col-span-2 space-y-1">
-              <label className="block text-xs font-bold text-zinc-400 font-ios-mono uppercase">
-                Habit Stacking Routine Formula
+              <label className="block text-[10px] font-mono text-slate-400 uppercase tracking-widest">
+                Habit Stacking Formula (Anchor Star → Target Star)
               </label>
               <input
                 type="text"
-                placeholder="e.g. After Morning Coffee ☕ → Read 10 Pages 📖"
+                placeholder="e.g. After Morning Coffee ☕ → Read 15 Pages 📖"
                 value={habitStack}
                 onChange={(e) => setHabitStack(e.target.value)}
-                className="w-full px-3.5 py-2.5 bg-zinc-950/70 border border-zinc-800 rounded-xl text-zinc-200 focus:outline-none text-sm font-handwritten text-lg"
+                className="w-full px-3 py-2 bg-substrate-bg/80 border border-substrate-border text-slate-200 focus:outline-none focus:border-gold text-xs font-mono"
               />
             </div>
 
-            {/* Link to Questionnaire Prompt */}
             {questions.length > 0 && (
               <div className="sm:col-span-2 space-y-1">
-                <label className="block text-xs font-bold text-zinc-400 font-ios-mono uppercase">
-                  Link to Habit Prompt (Optional)
+                <label className="block text-[10px] font-mono text-slate-400 uppercase tracking-widest">
+                  Link to Habit Metric (Optional)
                 </label>
                 <select
                   value={linkedQuestionId}
                   onChange={(e) => setLinkedQuestionId(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-zinc-950/70 border border-zinc-800 rounded-xl text-zinc-200 focus:outline-none text-sm font-ios-sans cursor-pointer"
+                  className="w-full px-3 py-2 bg-substrate-bg/80 border border-substrate-border text-slate-200 focus:outline-none focus:border-gold text-xs font-mono cursor-pointer"
                 >
-                  <option value="">None (Standalone Goal)</option>
+                  <option value="">None (Standalone Orbit)</option>
                   {questions.map((q) => (
                     <option key={q.id} value={q.id}>
                       {q.prompt} ({q.type})
@@ -300,17 +295,16 @@ export default function GoalsPage() {
             <button
               type="button"
               onClick={() => setShowForm(false)}
-              className="px-4 py-2 rounded-xl text-xs font-bold bg-zinc-900 text-zinc-400 hover:text-zinc-200 border border-zinc-850 cursor-pointer font-ios-sans"
+              className="px-4 py-1.5 font-mono text-xs uppercase tracking-wider text-slate-400 hover:text-slate-200 border border-substrate-border"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={creating}
-              style={{ background: 'var(--accent-gradient)', color: '#09090b' }}
-              className="px-5 py-2 rounded-xl font-extrabold text-xs shadow cursor-pointer font-ios-sans disabled:opacity-50"
+              className="px-5 py-1.5 font-mono text-xs uppercase tracking-widest bg-gold text-slate-950 font-bold hover:bg-gold-bright transition-colors"
             >
-              {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Save Goal Milestone'}
+              {creating ? 'Propelling Orbit...' : 'Forge Orbit'}
             </button>
           </div>
         </form>
@@ -318,115 +312,100 @@ export default function GoalsPage() {
 
       {/* Goals Feed Grid */}
       {goals.length === 0 ? (
-        <div className="craft-card p-12 text-center space-y-3 border-zinc-850 text-zinc-450 font-handwritten text-xl">
-          <Compass className="w-10 h-10 text-zinc-650 mx-auto" />
-          <p className="text-zinc-400">
-            No goals created yet. Click "New Goal" above to create your first milestone!
-          </p>
+        <div className="bg-substrate-card/90 border border-substrate-border p-12 text-center space-y-3 font-mono text-xs text-slate-400 shadow-xl">
+          <Compass className="w-10 h-10 text-slate-600 mx-auto" />
+          <p>No celestial orbits forged yet. Click &quot;New Orbit&quot; above to chart your first milestone!</p>
         </div>
       ) : (
         <div className={`grid gap-4 ${isDesktop ? 'grid-cols-2' : 'grid-cols-1'}`}>
           {goals.map((g) => {
             const percent = Math.min(100, Math.round((g.current_value / g.target_value) * 100));
             const isCompleted = percent >= 100;
-            const linkedQ = questions.find((q) => q.id === g.linked_question_id);
 
             return (
               <div 
                 key={g.id}
-                className={`craft-card p-5 space-y-4 border transition-all duration-300 ${
+                className={`bg-substrate-card/90 border p-5 space-y-4 transition-all shadow-xl backdrop-blur-md ${
                   isCompleted 
-                    ? 'border-emerald-500/40 bg-emerald-500/5' 
-                    : 'border-zinc-850 hover:border-zinc-800'
+                    ? 'border-emerald-500/50 bg-emerald-950/20' 
+                    : 'border-substrate-border hover:border-gold/40'
                 }`}
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="space-y-1">
                     <div className="flex items-center space-x-2">
-                      <span className="text-[10px] font-bold font-ios-mono uppercase px-2 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-zinc-400">
+                      <span className="text-[9px] font-mono uppercase tracking-widest px-1.5 py-0.5 border border-gold/30 bg-gold/10 text-gold-bright">
                         {g.category}
                       </span>
                       {g.target_date && (
-                        <span className="text-[10px] font-ios-mono text-zinc-500 flex items-center space-x-1">
+                        <span className="text-[10px] font-mono text-slate-500 flex items-center space-x-1">
                           <Calendar className="w-3 h-3" />
                           <span>Target: {g.target_date}</span>
                         </span>
                       )}
                     </div>
-                    <h3 className="text-lg font-bold text-zinc-100 font-ios-serif leading-snug">{g.title}</h3>
+                    <h3 className="text-base font-serif text-slate-100 leading-snug">{g.title}</h3>
                   </div>
 
                   <button
                     onClick={() => handleDeleteGoal(g.id)}
-                    className="p-1.5 text-zinc-500 hover:text-red-400 rounded-lg hover:bg-zinc-900 transition-colors cursor-pointer shrink-0"
-                    title="Delete Goal"
+                    className="p-1.5 text-slate-500 hover:text-red-400 transition-colors"
+                    title="Delete Orbit"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
                 </div>
 
-                {/* Habit Stacking Formula Banner */}
+                {/* Habit Stacking Banner */}
                 {g.habit_stack && (
-                  <div className="p-2.5 rounded-xl border border-zinc-850/80 bg-zinc-950/40 text-xs text-zinc-300 font-handwritten text-lg flex items-center space-x-2">
-                    <Zap className="w-4 h-4 text-amber-400 shrink-0" />
+                  <div className="p-2 border border-white/5 bg-substrate-bg/40 text-xs font-mono text-slate-300 flex items-center space-x-2">
+                    <Zap className="w-3.5 h-3.5 text-amber-400 shrink-0" />
                     <span>{g.habit_stack}</span>
                   </div>
                 )}
 
                 {/* Progress Bar & Percentage */}
                 <div className="space-y-2">
-                  <div className="flex justify-between items-center text-xs font-ios-mono">
-                    <span className="font-bold text-zinc-300">
+                  <div className="flex justify-between items-center text-xs font-mono">
+                    <span className="text-slate-300">
                       {g.current_value} / {g.target_value} {g.unit}
                     </span>
-                    <span className={`font-black font-ios-rounded ${isCompleted ? 'text-emerald-400' : 'text-zinc-400'}`}>
-                      {percent}% {isCompleted ? '🎉 Complete!' : ''}
+                    <span className={`font-bold ${isCompleted ? 'text-emerald-400' : 'text-gold'}`}>
+                      {percent}% {isCompleted ? '✦ ORBIT COMPLETED' : ''}
                     </span>
                   </div>
 
-                  <div className="w-full h-2.5 bg-zinc-950 rounded-full overflow-hidden border border-zinc-850">
-                    <div 
-                      className="h-full transition-all duration-500 rounded-full"
-                      style={{ 
-                        width: `${percent}%`, 
-                        background: isCompleted ? 'linear-gradient(135deg, #10b981, #34d399)' : 'var(--accent-gradient)' 
-                      }}
-                    ></div>
+                  <div className="w-full h-1.5 bg-substrate-bg border border-substrate-border overflow-hidden">
+                    <div
+                      className={`h-full transition-all duration-500 ${
+                        isCompleted ? 'bg-emerald-400' : 'bg-gold'
+                      }`}
+                      style={{ width: `${percent}%` }}
+                    />
                   </div>
                 </div>
 
-                {/* Linked Habit Indicator & Quick Increments */}
-                <div className="flex items-center justify-between pt-1 border-t border-zinc-850/60">
-                  {linkedQ ? (
-                    <span className="text-[10px] text-zinc-500 font-ios-mono flex items-center space-x-1">
-                      <Layers className="w-3 h-3 text-teal-400" />
-                      <span className="truncate max-w-[140px]">Linked: {linkedQ.prompt}</span>
-                    </span>
-                  ) : (
-                    <span className="text-[10px] text-zinc-650 font-ios-mono">Standalone Goal</span>
-                  )}
-
-                  {/* Increment Buttons */}
-                  <div className="flex items-center space-x-1.5 font-ios-rounded">
+                {/* Propel Orbit Modifiers */}
+                <div className="flex items-center justify-between pt-1 border-t border-white/5">
+                  <span className="text-[9px] font-mono uppercase tracking-widest text-slate-500">
+                    Propel Orbit:
+                  </span>
+                  <div className="flex items-center space-x-1.5">
                     <button
                       onClick={() => handleUpdateProgress(g.id, -1)}
-                      className="px-2 py-1 bg-zinc-950 hover:bg-zinc-900 border border-zinc-800 text-zinc-400 rounded-lg text-xs font-bold transition-colors cursor-pointer"
-                      title="Subtract 1"
+                      className="px-2 py-0.5 border border-substrate-border text-[10px] font-mono text-slate-400 hover:text-slate-200"
                     >
                       -1
                     </button>
                     <button
                       onClick={() => handleUpdateProgress(g.id, 1)}
-                      style={{ backgroundColor: 'var(--accent-glow)', borderColor: 'var(--accent-border)', color: 'var(--accent)' }}
-                      className="px-2.5 py-1 border rounded-lg text-xs font-bold transition-all cursor-pointer shadow-sm hover:scale-105"
-                      title="Add 1"
+                      className="px-2.5 py-0.5 border border-gold/40 bg-gold/10 text-[10px] font-mono text-gold hover:bg-gold/20"
                     >
                       +1
                     </button>
                     <button
                       onClick={() => handleUpdateProgress(g.id, 5)}
-                      className="px-2 py-1 bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 text-zinc-200 rounded-lg text-xs font-bold transition-colors cursor-pointer"
-                      title="Add 5"
+                      className="px-2.5 py-0.5 border border-gold/40 bg-gold/10 text-[10px] font-mono text-gold hover:bg-gold/20"
                     >
                       +5
                     </button>

@@ -484,7 +484,7 @@ export default function ChartsPage() {
   const CUSTOM_TOOLTIP = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       return (
-        <div className="craft-card p-3 border border-zinc-800 text-xs font-ios-mono space-y-1 shadow-xl bg-zinc-950">
+        <div className="bg-substrate-card/95 p-3 border border-substrate-border text-xs font-mono space-y-1 shadow-2xl backdrop-blur-md">
           <p className="font-bold text-zinc-300">{label}</p>
           {payload.map((entry: any, index: number) => (
             <p key={index} style={{ color: entry.color || 'var(--accent)' }}>
@@ -503,27 +503,26 @@ export default function ChartsPage() {
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
         <div className="space-y-1">
           <div className="flex items-center space-x-2">
-            <BarChart3 className="w-4 h-4" style={{ color: 'var(--accent)' }} />
-            <span className="text-xs uppercase tracking-widest font-extrabold font-ios-mono" style={{ color: 'var(--accent)' }}>
-              Analytics & Insights
+            <BarChart3 className="w-4 h-4 text-gold" />
+            <span className="text-xs uppercase tracking-widest font-bold font-mono text-gold">
+              Celestial Analytics & Keystone Detective
             </span>
           </div>
-          <h1 className="text-3xl font-extrabold text-zinc-50 tracking-tight font-ios-serif">
-            Performance & Life Wrapped
+          <h1 className="text-3xl font-light text-slate-100 tracking-tight font-serif">
+            Cosmic Performance & Wrapped
           </h1>
-          <p className="text-base text-zinc-400 font-handwritten text-xl leading-snug">
-            Monthly habit score heatmap (Good 🟢 vs Bad 🔴), habit completion rates, and AI correlation analysis.
+          <p className="text-xs text-slate-400 font-mono leading-relaxed">
+            Algorithmic discovery of keystone habit multipliers, circadian synchrony, and net willpower velocity.
           </p>
         </div>
 
         {/* Share Life Wrapped Button */}
         <button
           onClick={() => setShowShareModal(true)}
-          style={{ background: 'var(--accent-gradient)', color: '#09090b' }}
-          className="glow-btn px-4 py-2.5 rounded-xl font-bold text-xs flex items-center space-x-2 cursor-pointer shadow-lg shrink-0 font-ios-sans self-start sm:self-auto"
+          className="px-4 py-2 bg-substrate-card hover:bg-gold/15 border border-gold text-gold font-mono text-xs uppercase tracking-widest transition-all shadow-[0_0_12px_rgba(212,175,55,0.2)] flex items-center space-x-2 shrink-0 self-start sm:self-auto"
         >
-          <Sparkles className="w-4 h-4" />
-          <span>Life Wrapped ✨</span>
+          <Sparkles className="w-3.5 h-3.5 text-gold" />
+          <span>Cosmic Wrapped ✨</span>
         </button>
       </div>
 
@@ -546,85 +545,85 @@ export default function ChartsPage() {
 
       {/* Metric Cards Summary Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <div className="craft-card p-4 space-y-1">
-          <div className="flex items-center space-x-2 text-zinc-400 text-xs font-ios-mono">
-            <Activity className="w-4 h-4" style={{ color: 'var(--accent)' }} />
-            <span>Check-ins</span>
+        <div className="bg-substrate-card/90 border border-substrate-border p-4 space-y-1 shadow-lg">
+          <div className="flex items-center space-x-2 text-slate-400 text-xs font-mono">
+            <Activity className="w-3.5 h-3.5 text-gold" />
+            <span>Synchronized Orbits</span>
           </div>
-          <span className="text-2xl font-black font-ios-rounded text-zinc-100">{metrics.totalLogs}</span>
-          <span className="block text-[10px] text-zinc-500 font-ios-mono">Total reflections</span>
+          <span className="text-2xl font-light font-serif text-slate-100">{metrics.totalLogs}</span>
+          <span className="block text-[10px] text-slate-500 font-mono uppercase tracking-wider">Total days charted</span>
         </div>
 
-        <div className="craft-card p-4 space-y-1">
-          <div className="flex items-center space-x-2 text-zinc-400 text-xs font-ios-mono">
-            <PieIcon className="w-4 h-4 text-emerald-400" />
-            <span>Consistency</span>
+        <div className="bg-substrate-card/90 border border-substrate-border p-4 space-y-1 shadow-lg">
+          <div className="flex items-center space-x-2 text-slate-400 text-xs font-mono">
+            <PieIcon className="w-3.5 h-3.5 text-emerald-400" />
+            <span>Orbital Velocity</span>
           </div>
-          <span className="text-2xl font-black font-ios-rounded text-emerald-400">{metrics.consistencyRate}%</span>
-          <span className="block text-[10px] text-zinc-500 font-ios-mono">30-Day Rate</span>
+          <span className="text-2xl font-light font-serif text-emerald-400">{metrics.consistencyRate}%</span>
+          <span className="block text-[10px] text-slate-500 font-mono uppercase tracking-wider">30-Day Consistency</span>
         </div>
 
-        <div className="craft-card p-4 space-y-1">
-          <div className="flex items-center space-x-2 text-zinc-400 text-xs font-ios-mono">
-            <Bed className="w-4 h-4 text-cyan-400" />
-            <span>Avg Sleep</span>
+        <div className="bg-substrate-card/90 border border-substrate-border p-4 space-y-1 shadow-lg">
+          <div className="flex items-center space-x-2 text-slate-400 text-xs font-mono">
+            <Bed className="w-3.5 h-3.5 text-sky-400" />
+            <span>Circadian Sleep</span>
           </div>
-          <span className="text-2xl font-black font-ios-rounded text-cyan-300">{metrics.avgSleep || '-'} hrs</span>
-          <span className="block text-[10px] text-zinc-500 font-ios-mono">Nightly average</span>
+          <span className="text-2xl font-light font-serif text-sky-300">{metrics.avgSleep || '-'} hrs</span>
+          <span className="block text-[10px] text-slate-500 font-mono uppercase tracking-wider">Nightly restorative</span>
         </div>
 
-        <div className="craft-card p-4 space-y-1">
-          <div className="flex items-center space-x-2 text-zinc-400 text-xs font-ios-mono">
-            <Smile className="w-4 h-4 text-amber-400" />
-            <span>Avg Mood</span>
+        <div className="bg-substrate-card/90 border border-substrate-border p-4 space-y-1 shadow-lg">
+          <div className="flex items-center space-x-2 text-slate-400 text-xs font-mono">
+            <Smile className="w-3.5 h-3.5 text-amber-400" />
+            <span>Cognitive Energy</span>
           </div>
-          <span className="text-2xl font-black font-ios-rounded text-amber-300">{metrics.avgMood || '-'}/5</span>
-          <span className="block text-[10px] text-zinc-500 font-ios-mono">Overall score</span>
+          <span className="text-2xl font-light font-serif text-amber-300">{metrics.avgMood || '-'}/5</span>
+          <span className="block text-[10px] text-slate-500 font-mono uppercase tracking-wider">Subjective state</span>
         </div>
       </div>
 
       {/* NEW FEATURE: AI Correlation Detective & Behavioral Causality */}
-      <div className="craft-card p-5 space-y-3.5 border border-purple-500/30 bg-purple-500/5">
+      <div className="bg-substrate-card/90 border border-purple-500/30 p-5 space-y-3.5 shadow-xl backdrop-blur-md">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2.5">
             <BrainCircuit className="w-5 h-5 text-purple-400" />
             <div>
-              <h2 className="text-base font-extrabold text-zinc-100 font-ios-serif">
-                AI Habit Detective & Behavioral Causality
+              <h2 className="text-base font-light text-slate-100 font-serif">
+                Keystone Habit Detective & Behavioral Causality
               </h2>
-              <p className="text-xs text-zinc-400 font-ios-sans">
-                Algorithmic discovery of keystone habits and productivity multipliers.
+              <p className="text-xs text-slate-400 font-mono">
+                Algorithmic discovery of keystone habit multipliers and causal linkages.
               </p>
             </div>
           </div>
-          <span className="text-[10px] font-bold font-ios-mono uppercase px-2 py-0.5 rounded bg-purple-500/20 text-purple-300">
+          <span className="text-[10px] font-bold font-mono uppercase px-2 py-0.5 border border-purple-500/40 bg-purple-950/40 text-purple-300">
             Automated Insights
           </span>
         </div>
 
         <div className={`grid gap-3 ${isDesktop ? 'grid-cols-2' : 'grid-cols-1'}`}>
           {aiInsights.map((insight, idx) => (
-            <div key={idx} className="p-3.5 rounded-xl border border-zinc-850 bg-zinc-950/80 space-y-1">
+            <div key={idx} className="p-3.5 border border-substrate-border bg-substrate-bg/60 space-y-1">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-zinc-200 font-ios-serif">{insight.title}</span>
-                <span className="text-[9px] font-bold font-ios-mono px-1.5 py-0.5 rounded bg-zinc-900 text-teal-400 border border-zinc-800">
+                <span className="text-xs font-serif text-slate-200">{insight.title}</span>
+                <span className="text-[9px] font-mono px-1.5 py-0.5 bg-substrate-card text-gold border border-gold/30">
                   {insight.tag}
                 </span>
               </div>
-              <p className="text-xs text-zinc-400 font-ios-sans leading-relaxed">{insight.desc}</p>
+              <p className="text-xs text-slate-400 font-mono leading-relaxed">{insight.desc}</p>
             </div>
           ))}
         </div>
       </div>
 
       {/* Monthly Habit Score Calendar Grid (Green 🟢 / Red 🔴 Spectrum) */}
-      <div className="craft-card p-5 space-y-4 border-2" style={{ borderColor: 'var(--accent-border)' }}>
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-zinc-850 pb-3">
+      <div className="bg-substrate-card/90 border border-substrate-border p-5 space-y-4 shadow-xl backdrop-blur-md">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-substrate-border pb-3">
           <div className="flex items-center space-x-2.5">
-            <CalendarIcon className="w-5 h-5" style={{ color: 'var(--accent)' }} />
+            <CalendarIcon className="w-5 h-5 text-gold" />
             <div>
-              <h2 className="text-lg font-extrabold text-zinc-100 font-ios-serif">Monthly Habit Score Heatmap</h2>
-              <p className="text-xs text-zinc-400 font-ios-sans">Daily boxes shaded by Good 🟢 vs Bad 🔴 habit balance score.</p>
+              <h2 className="text-lg font-light text-slate-100 font-serif">Monthly Habit Score Heatmap</h2>
+              <p className="text-xs text-slate-400 font-mono">Daily boxes shaded by Good 🟢 vs Bad 🔴 habit balance score.</p>
             </div>
           </div>
 
@@ -760,7 +759,7 @@ export default function ChartsPage() {
       </div>
 
       {/* TOP FEATURE: Custom 2-Metric Correlation Explorer */}
-      <div className="craft-card p-5 space-y-4 border-2" style={{ borderColor: 'var(--accent-border)' }}>
+      <div className="bg-substrate-card/90 border border-substrate-border p-5 space-y-4 shadow-xl backdrop-blur-md">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
           <div className="flex items-center space-x-2.5">
             <div 
@@ -875,13 +874,13 @@ export default function ChartsPage() {
       <div className={`grid gap-6 ${isDesktop ? 'grid-cols-2' : 'grid-cols-1'}`}>
         
         {/* Chart 1: 14-Day Check-in Activity Trend */}
-        <div className="craft-card p-5 space-y-4">
+        <div className="bg-substrate-card/90 border border-substrate-border p-5 space-y-4 shadow-xl backdrop-blur-md">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
-              <TrendingUp className="w-4 h-4" style={{ color: 'var(--accent)' }} />
-              <h2 className="text-sm font-bold text-zinc-200 font-ios-sans">14-Day Check-in Trend</h2>
+              <TrendingUp className="w-4 h-4 text-gold" />
+              <h2 className="text-sm font-serif text-slate-200">14-Day Orbital Activity Trend</h2>
             </div>
-            <span className="text-[10px] text-zinc-500 font-ios-mono">Daily Activity</span>
+            <span className="text-[10px] text-slate-500 font-mono">Daily Check-ins</span>
           </div>
 
           <div className="h-60 w-full pt-2">
@@ -891,25 +890,25 @@ export default function ChartsPage() {
                 <XAxis dataKey="date" stroke="#71717a" fontSize={10} tickLine={false} />
                 <YAxis stroke="#71717a" fontSize={10} domain={[0, 1]} ticks={[0, 1]} tickLine={false} />
                 <Tooltip content={<CUSTOM_TOOLTIP />} />
-                <Bar dataKey="checkIn" name="Completed" fill="var(--accent)" radius={[6, 6, 0, 0]} />
+                <Bar dataKey="checkIn" name="Completed" fill="#D4AF37" radius={[2, 2, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
         </div>
 
         {/* Chart 2: Habit Completion & Bad Habit Avoidance Rates */}
-        <div className="craft-card p-5 space-y-4">
+        <div className="bg-substrate-card/90 border border-substrate-border p-5 space-y-4 shadow-xl backdrop-blur-md">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
               <Award className="w-4 h-4 text-emerald-400" />
-              <h2 className="text-sm font-bold text-zinc-200 font-ios-sans">Habit Success Rates (%)</h2>
+              <h2 className="text-sm font-serif text-slate-200">Habit Success Rates (%)</h2>
             </div>
-            <span className="text-[10px] text-zinc-500 font-ios-mono">Good / Bad Avoidance</span>
+            <span className="text-[10px] text-slate-500 font-mono">Virtue / Vice Avoidance</span>
           </div>
 
           <div className="h-60 w-full pt-2">
             {habitData.length === 0 ? (
-              <div className="h-full flex items-center justify-center text-xs text-zinc-500 font-handwritten text-lg">
+              <div className="h-full flex items-center justify-center text-xs text-slate-500 font-mono">
                 No active habit data available yet.
               </div>
             ) : (
@@ -919,7 +918,7 @@ export default function ChartsPage() {
                   <XAxis type="number" domain={[0, 100]} stroke="#71717a" fontSize={10} />
                   <YAxis type="category" dataKey="name" stroke="#71717a" fontSize={10} width={110} tickLine={false} />
                   <Tooltip content={<CUSTOM_TOOLTIP />} />
-                  <Bar dataKey="completionRate" name="Success Rate (%)" fill="#10b981" radius={[0, 6, 6, 0]} />
+                  <Bar dataKey="completionRate" name="Success Rate (%)" fill="#10b981" radius={[0, 2, 2, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             )}
@@ -927,7 +926,7 @@ export default function ChartsPage() {
         </div>
 
         {/* Chart 3: 30-Day Consistency Doughnut */}
-        <div className="craft-card p-5 space-y-4 col-span-full">
+        <div className="bg-substrate-card/90 border border-substrate-border p-5 space-y-4 col-span-full shadow-xl backdrop-blur-md">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
               <PieIcon className="w-4 h-4 text-purple-400" />

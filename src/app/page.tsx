@@ -5,21 +5,25 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useDeviceLayout } from '@/contexts/DeviceLayoutContext';
 import { supabase } from '@/lib/supabase';
 import HeaderHUD from '@/components/HeaderHUD';
+import DynamicIslandHUD from '@/components/DynamicIslandHUD';
 import ChronoDial from '@/components/ChronoDial';
 import HabitList from '@/components/HabitList';
 import SavedEntries from '@/components/SavedEntries';
 import InstallPwaBanner from '@/components/InstallPwaBanner';
 import ShareableCardModal from '@/components/ShareableCardModal';
+import UrgeDefuserModal from '@/components/UrgeDefuserModal';
 import { 
   playCompletionChime, triggerHaptic, updateAppBadge, 
   triggerVariableReward, getRandomQuote, calculateStreakWithFreezes,
   generateMicroInsight, StreakInfo, shuffleArray
 } from '@/lib/feedback';
+import { playCelestialLockGong } from '@/lib/cosmicAudio';
+import { parseVoiceTranscript } from '@/lib/voiceDebrief';
 import { 
   calculateUserLevel, calculateAchievementBadges, LevelInfo, ACCENT_THEMES, AchievementBadge
 } from '@/lib/gamification';
 import { 
-  ShieldCheck, Lightbulb, Loader2, Trophy
+  ShieldCheck, Lightbulb, Loader2, Trophy, Flame, Sparkles
 } from 'lucide-react';
 
 type AutoSaveStatus = 'saved' | 'saving' | 'offline' | 'idle';
@@ -35,6 +39,8 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [isListening, setIsListening] = useState<Record<string, boolean>>({});
+  const [isVoiceDebriefing, setIsVoiceDebriefing] = useState(false);
+  const [showUrgeDefuser, setShowUrgeDefuser] = useState(false);
   const [allLogDates, setAllLogDates] = useState<string[]>([]);
   const [activeThemeId, setActiveThemeId] = useState('teal');
   const [badges, setBadges] = useState<AchievementBadge[]>([]);
@@ -73,72 +79,51 @@ export default function Dashboard() {
     return `${yyyy}-${mm}-${dd}`;
   };
 
-  const getLocalHabitTypeMap = (): Record<string, string> => {
-    if (typeof window === 'undefined') return {};
-    try {
-      return JSON.parse(localStorage.getItem('reflect_habit_types') || '{}');
-    } catch {
-      return {};
-    }
+  const getDraftStorageKey = (userId: string, date: string) => {
+    return `reflect_draft_${userId}_${date}`;
   };
 
-  const getDraftStorageKey = (userId: string, date: string) => `reflect_draft_${userId}_${date}`;
-
   useEffect(() => {
-    const theme = localStorage.getItem('reflect_accent_theme') || 'teal';
-    setActiveThemeId(theme);
-    setSelectedDate(getLocalTodayDateStr());
+    const today = getLocalTodayDateStr();
+    setSelectedDate(today);
 
-    const handleThemeChange = () => {
-      const updatedTheme = localStorage.getItem('reflect_accent_theme') || 'teal';
-      setActiveThemeId(updatedTheme);
-    };
-
-    window.addEventListener('reflect_theme_change', handleThemeChange);
-    return () => window.removeEventListener('reflect_theme_change', handleThemeChange);
+    if (typeof window !== 'undefined') {
+      const savedTheme = localStorage.getItem('reflect_accent_theme') || 'teal';
+      setActiveThemeId(savedTheme);
+      setMotivationalQuote(getRandomQuote());
+    }
   }, []);
 
-  // Account & Date isolated data loader
+  // Fetch habits and entry logs
   useEffect(() => {
     if (!user || !selectedDate) return;
-
-    isInitialMount.current = true;
-    setAutoSaveStatus('idle');
 
     const fetchDataForDate = async () => {
       setLoading(true);
       try {
-        const { data: activeQuestions, error: qError } = await supabase
+        const { data: qData, error: qError } = await supabase
           .from('questions')
           .select('*')
           .eq('user_id', user.id)
-          .eq('is_active', true)
+          .eq('archived', false)
           .order('order_index', { ascending: true });
 
         if (qError) throw qError;
 
-        const localHabits = getLocalHabitTypeMap();
-        let loadedQuestions = (activeQuestions || []).map((q: any) => ({
-          ...q,
-          habit_type: localHabits[q.id] || q.habit_type || 'good',
-        }));
+        let loadedQuestions = qData || [];
 
-        const isRandomized = localStorage.getItem('reflect_randomize_questions') === 'true';
-        if (isRandomized) {
-          loadedQuestions = shuffleArray(loadedQuestions);
+        // Apply local habit category mappings
+        if (typeof window !== 'undefined') {
+          try {
+            const habitTypes = JSON.parse(localStorage.getItem('reflect_habit_types') || '{}');
+            loadedQuestions = loadedQuestions.map((q) => ({
+              ...q,
+              habit_type: habitTypes[q.id] || q.habit_type || 'good',
+            }));
+          } catch {}
         }
 
         setQuestions(loadedQuestions);
-
-        // Fetch Log for selectedDate & user.id
-        const { data: targetLog, error: logError } = await supabase
-          .from('daily_logs')
-          .select('*')
-          .eq('user_id', user.id)
-          .eq('date', selectedDate)
-          .maybeSingle();
-
-        if (logError) throw logError;
 
         const { data: allLogs } = await supabase
           .from('daily_logs')
@@ -146,6 +131,8 @@ export default function Dashboard() {
           .eq('user_id', user.id);
 
         const logsList = allLogs || [];
+        const targetLog = logsList.find((l: any) => l.date === selectedDate);
+
         const logDates = logsList.map((l: any) => l.date);
         setAllLogDates(logDates);
         
@@ -166,7 +153,6 @@ export default function Dashboard() {
           setIsEditing(true);
           if (selectedDate === getLocalTodayDateStr()) updateAppBadge(1);
           
-          // Check account-isolated local draft
           const draftKey = getDraftStorageKey(user.id, selectedDate);
           const savedDraft = localStorage.getItem(draftKey);
 
@@ -206,7 +192,7 @@ export default function Dashboard() {
     setAnswers(initialAnswers);
   };
 
-  // Perform background debounced auto-save across accounts
+  // Perform background debounced auto-save
   const performAutoSave = useCallback(
     async (updatedAnswers: Record<string, any>) => {
       if (!user || !selectedDate || isInitialMount.current) return;
@@ -264,14 +250,57 @@ export default function Dashboard() {
     }, 800);
   };
 
+  // Voice stream debrief (Speech to structured habits)
+  const handleTriggerVoiceDebrief = () => {
+    if (typeof window === 'undefined') return;
+    const SpeechRec = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRec) {
+      alert('Voice recognition not supported in this browser. Try Safari or Chrome.');
+      return;
+    }
+
+    if (isVoiceDebriefing) {
+      setIsVoiceDebriefing(false);
+      return;
+    }
+
+    try {
+      const recognition = new SpeechRec();
+      recognition.continuous = false;
+      recognition.interimResults = false;
+      recognition.lang = 'en-US';
+
+      recognition.onstart = () => {
+        setIsVoiceDebriefing(true);
+        triggerHaptic(30);
+      };
+
+      recognition.onresult = (evt: any) => {
+        const text = evt.results[0][0].transcript;
+        const parsed = parseVoiceTranscript(text, questions);
+        const merged = { ...answers, ...parsed.matchedAnswers };
+        setAnswers(merged);
+        performAutoSave(merged);
+        setIsVoiceDebriefing(false);
+        triggerVariableReward();
+        triggerHaptic(50);
+      };
+
+      recognition.onerror = () => setIsVoiceDebriefing(false);
+      recognition.onend = () => setIsVoiceDebriefing(false);
+      recognition.start();
+    } catch {
+      setIsVoiceDebriefing(false);
+    }
+  };
+
   const toggleVoiceJournaling = (questionId: string) => {
     triggerHaptic(20);
     if (typeof window === 'undefined') return;
 
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-
     if (!SpeechRecognition) {
-      alert('Speech recognition is not supported in this browser. Try Safari on iOS or Chrome.');
+      alert('Speech recognition is not supported in this browser.');
       return;
     }
 
@@ -313,6 +342,33 @@ export default function Dashboard() {
     }
   };
 
+  // Keyboard Shortcuts Studio Controls
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const activeEl = document.activeElement?.tagName.toLowerCase();
+      if (activeEl === 'input' || activeEl === 'textarea') return;
+
+      // Number keys 1-9 toggle habit items
+      if (e.key >= '1' && e.key <= '9') {
+        const idx = parseInt(e.key, 10) - 1;
+        if (questions[idx]) {
+          const q = questions[idx];
+          if (q.type === 'boolean') {
+            handleAnswerChange(q.id, !answers[q.id]);
+          }
+        }
+      } else if (e.key.toLowerCase() === 'u') {
+        setShowUrgeDefuser(true);
+      } else if (e.key === 'Escape') {
+        setShowUrgeDefuser(false);
+        setShowShareModal(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [questions, answers, isEditing]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user || !selectedDate) return;
@@ -338,6 +394,7 @@ export default function Dashboard() {
 
       triggerVariableReward();
       playCompletionChime();
+      playCelestialLockGong();
       triggerHaptic(40);
       if (selectedDate === getLocalTodayDateStr()) updateAppBadge(0);
       setMotivationalQuote(getRandomQuote());
@@ -358,49 +415,87 @@ export default function Dashboard() {
       setLog(data);
       setIsEditing(false);
       setAutoSaveStatus('saved');
-    } catch (err: any) {
-      console.error('Error saving daily log:', err);
-      alert('Failed to save log: ' + err.message);
+    } catch (err) {
+      console.error('Error submitting daily reflection:', err);
     } finally {
       setSubmitting(false);
     }
   };
 
+  // Calculate Net Willpower Score
+  const calculateNetWillpower = () => {
+    let score = 0;
+    questions.forEach((q) => {
+      const val = answers[q.id];
+      if (val === undefined || val === null) return;
+      if (q.type === 'boolean') {
+        if (q.habit_type === 'bad') {
+          if (val === false) score += 20; // Resisted vice: +20 WP
+          if (val === true) score -= 30;  // Indulged vice: -30 WP
+        } else {
+          if (val === true) score += 15;  // Accomplished virtue: +15 WP
+        }
+      } else if (q.type === 'scale_1_to_5') {
+        score += Number(val) * 3;
+      }
+    });
+    return score;
+  };
+
   if (authLoading || loading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[50vh] space-y-4">
-        <Loader2 className="w-6 h-6 animate-spin text-gold" />
-        <span className="font-mono text-xs text-slate-400 tracking-widest uppercase">
-          INITIALIZING SUBSTRATE DATA...
+        <Loader2 className="w-8 h-8 animate-spin text-gold" />
+        <span className="font-mono text-xs uppercase tracking-widest text-slate-400">
+          Synchronizing Astrolabe Core...
         </span>
       </div>
     );
   }
 
-  const isDesktop = activeDevice === 'desktop';
-  const todayStr = getLocalTodayDateStr();
-  const isTodaySelected = selectedDate === todayStr;
+  const isTodaySelected = selectedDate === getLocalTodayDateStr();
+  const isStamped = Boolean(log) && !isEditing;
 
-  const loggedCount = questions.filter(
-    (q) => answers[q.id] !== undefined && answers[q.id] !== null && answers[q.id] !== ''
-  ).length;
-  const completionRate = questions.length > 0 ? loggedCount / questions.length : 0;
-  const isStamped = !isEditing && Boolean(log);
+  const totalAnswerable = questions.length;
+  const loggedCount = questions.filter((q) => {
+    const val = answers[q.id];
+    return val !== undefined && val !== null && val !== '';
+  }).length;
+  const completionRate = totalAnswerable > 0 ? loggedCount / totalAnswerable : 0;
+  const netWillpower = calculateNetWillpower();
+
+  const isDesktop = activeDevice === 'desktop';
 
   return (
-    <div className="w-full space-y-4 pb-8 overflow-x-hidden">
-      {/* Precision Header HUD (Slim 44px Fixed Status Bar) */}
-      <HeaderHUD
-        selectedDate={selectedDate}
-        onSelectDate={setSelectedDate}
-        maxDate={todayStr}
+    <div className="space-y-4 pb-12">
+      {/* Floating Dynamic Island HUD in Space */}
+      <DynamicIslandHUD
         streak={streakInfo.currentStreak}
+        netWillpowerScore={netWillpower}
+        onOpenUrgeDefuser={() => setShowUrgeDefuser(true)}
+        onTriggerVoiceDebrief={handleTriggerVoiceDebrief}
+        isListening={isVoiceDebriefing}
       />
 
-      {/* Smart PWA Install Banner */}
-      <InstallPwaBanner />
+      {/* Top Header HUD */}
+      <HeaderHUD
+        selectedDate={selectedDate}
+        onDateChange={(d) => setSelectedDate(d)}
+        streak={streakInfo.currentStreak}
+        autoSaveStatus={autoSaveStatus}
+        hasTodayLog={Boolean(log)}
+      />
 
-      {/* Shareable Life Wrapped Modal */}
+      {/* Urge Defuser 90s Breath Modal */}
+      <UrgeDefuserModal
+        isOpen={showUrgeDefuser}
+        onClose={() => setShowUrgeDefuser(false)}
+        onDefusedSuccess={() => {
+          triggerVariableReward();
+        }}
+      />
+
+      {/* Shareable Card Modal */}
       <ShareableCardModal
         isOpen={showShareModal}
         onClose={() => setShowShareModal(false)}
@@ -409,33 +504,27 @@ export default function Dashboard() {
           level: levelInfo.level,
           levelTitle: levelInfo.title,
           totalXP: levelInfo.totalXP,
-          totalLogs: levelInfo.totalXP > 0 ? Math.round(levelInfo.totalXP / 20) : 1,
-          consistencyRate: Math.min(100, (streakInfo.currentStreak / 30) * 100 > 0 ? Math.round((streakInfo.currentStreak / 30) * 100) : 100),
-          goodHabitsCount: Object.values(answers).filter(v => v === true).length,
-          badHabitsAvoided: 1,
-          periodName: isTodaySelected ? "Today's" : selectedDate,
+          totalLogs: allLogDates.length,
+          periodName: selectedDate,
         }}
       />
 
-      {/* Main Grid: Desktop 16:9 Studio 2-Column Split vs Mobile Single-Column */}
-      <div className={`grid gap-5 ${isDesktop ? 'grid-cols-12' : 'grid-cols-1'} overflow-x-hidden`}>
-        
-        {/* Left Column (Desktop 16:9 Studio Stats Sidebar) */}
+      <InstallPwaBanner />
+
+      <div className={isDesktop ? 'grid grid-cols-12 gap-6 items-start' : 'space-y-4'}>
+        {/* Left Stats Sidebar (PC Studio Layout) */}
         {isDesktop && (
-          <div className="col-span-4 space-y-4">
-            {/* Level Progress Celestial Card */}
-            <div className="celestial-card rounded-none p-4 corner-brackets relative space-y-2">
+          <div className="col-span-4 space-y-4 sticky top-28">
+            {/* Rank Level Celestial Card */}
+            <div className="celestial-card rounded-none p-4 corner-brackets relative space-y-2 bg-substrate-card/90 backdrop-blur-md border border-substrate-border shadow-xl">
               <div className="corner-bracket-tr" />
               <div className="corner-bracket-bl" />
               
-              <div className="flex items-center justify-between text-xs font-mono">
-                <div className="flex items-center space-x-1.5 text-slate-300">
-                  <Trophy className="w-3.5 h-3.5 text-gold" strokeWidth={1.5} />
-                  <span className="font-serif uppercase tracking-wider text-gold font-bold">
-                    RANK // {levelInfo.level}
-                  </span>
-                </div>
-                <span className="text-gold-bright font-mono">{levelInfo.totalXP} XP</span>
+              <div className="flex items-center justify-between text-xs font-mono font-bold">
+                <span className="font-serif uppercase tracking-wider text-gold">
+                  Orbital Rank // LVL {levelInfo.level}
+                </span>
+                <span className="text-gold-bright">{levelInfo.totalXP} XP</span>
               </div>
 
               <div className="text-[11px] font-mono text-slate-400">
@@ -451,7 +540,7 @@ export default function Dashboard() {
             </div>
 
             {/* Achievement Vault Celestial Card */}
-            <div className="celestial-card rounded-none p-4 corner-brackets relative space-y-2.5">
+            <div className="celestial-card rounded-none p-4 corner-brackets relative space-y-2.5 bg-substrate-card/90 backdrop-blur-md border border-substrate-border shadow-xl">
               <div className="corner-bracket-tr" />
               <div className="corner-bracket-bl" />
 
@@ -459,7 +548,7 @@ export default function Dashboard() {
                 <span className="font-serif uppercase tracking-wider text-gold">
                   Milestones Vault
                 </span>
-                <span className="text-[10px] text-slate-500 font-mono">
+                <span className="text-[10px] text-slate-400 font-mono">
                   {badges.filter((b) => b.unlocked).length}/{badges.length} UNLOCKED
                 </span>
               </div>
@@ -485,7 +574,7 @@ export default function Dashboard() {
             </div>
 
             {/* Streak Grace Freezes */}
-            <div className="celestial-card rounded-none p-3.5 text-xs font-mono flex items-center justify-between corner-brackets relative">
+            <div className="celestial-card rounded-none p-3.5 text-xs font-mono flex items-center justify-between corner-brackets relative bg-substrate-card/90 backdrop-blur-md border border-substrate-border shadow-xl">
               <div className="corner-bracket-tr" />
               <div className="corner-bracket-bl" />
               <div className="flex items-center space-x-1.5 text-slate-300">
@@ -497,7 +586,7 @@ export default function Dashboard() {
 
             {/* Micro Insight */}
             {microInsight && (
-              <div className="celestial-card rounded-none p-3.5 text-xs text-slate-300 flex items-start space-x-2.5 corner-brackets relative">
+              <div className="celestial-card rounded-none p-3.5 text-xs text-slate-300 flex items-start space-x-2.5 corner-brackets relative bg-substrate-card/90 backdrop-blur-md border border-substrate-border shadow-xl">
                 <div className="corner-bracket-tr" />
                 <div className="corner-bracket-bl" />
                 <Lightbulb className="w-3.5 h-3.5 text-gold shrink-0 mt-0.5" strokeWidth={1.5} />
@@ -510,7 +599,7 @@ export default function Dashboard() {
         {/* Main Workspace Column */}
         <div className={isDesktop ? 'col-span-8 space-y-4' : 'col-span-1 space-y-4'}>
           
-          {/* Central Astrolabe Radial Chrono Dial */}
+          {/* Central Astrolabe Radial Chrono Dial with Circadian 24H Coordinate Ticks */}
           <ChronoDial
             completionRate={completionRate}
             isStamped={isStamped}
@@ -521,6 +610,8 @@ export default function Dashboard() {
               triggerHaptic(10);
               setIsEditing(true);
             }}
+            onVoiceDebrief={handleTriggerVoiceDebrief}
+            isListening={isVoiceDebriefing}
           />
 
           {/* Habit Deck / Question Form vs Saved Entries */}

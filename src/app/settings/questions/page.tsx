@@ -467,40 +467,37 @@ export default function QuestionsSettings() {
       {/* Header */}
       <div className="space-y-1">
         <div className="flex items-center space-x-2">
-          <CheckSquare className="w-4 h-4" style={{ color: 'var(--accent)' }} />
-          <span className="text-xs uppercase tracking-widest font-extrabold font-ios-mono" style={{ color: 'var(--accent)' }}>
-            Journal Settings
+          <CheckSquare className="w-4 h-4 text-gold" />
+          <span className="text-xs uppercase tracking-widest font-bold font-mono text-gold">
+            Astrolabe Configuration
           </span>
         </div>
-        <h1 className="text-3xl font-extrabold text-zinc-50 tracking-tight font-ios-serif">
-          Settings & Routine Blueprints
+        <h1 className="text-3xl font-light text-slate-100 tracking-tight font-serif">
+          Settings & Bio-Protocol Blueprints
         </h1>
-        <p className="text-base text-zinc-400 font-handwritten text-xl leading-snug">
-          1-Click import viral routines (Huberman, 75 Hard, Atomic Habits), customize prompts, and configure themes.
+        <p className="text-xs text-slate-400 font-mono leading-relaxed">
+          1-Click import biological protocol stacks (Huberman, Bryan Johnson, Dopamine Detox), configure audio feedback, and customize metrics.
         </p>
       </div>
 
       {/* NEW FEATURE: Curated Routine Blueprints Library */}
-      <div className="craft-card p-5 space-y-4 border-2" style={{ borderColor: 'var(--accent-border)' }}>
-        <div className="flex items-center justify-between border-b border-zinc-850 pb-3">
+      <div className="bg-substrate-card/90 border border-substrate-border p-5 space-y-4 shadow-xl backdrop-blur-md">
+        <div className="flex items-center justify-between border-b border-substrate-border pb-3">
           <div className="flex items-center space-x-2.5">
-            <div 
-              className="p-2 rounded-xl border shrink-0"
-              style={{ backgroundColor: 'var(--accent-glow)', borderColor: 'var(--accent-border)', color: 'var(--accent)' }}
-            >
+            <div className="p-2 border border-gold/30 bg-gold/10 text-gold">
               <Layers className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-base font-extrabold text-zinc-100 font-ios-serif">
-                Routine Blueprints Library
+              <h2 className="text-sm font-serif uppercase tracking-widest text-gold font-semibold">
+                Bio-Protocol Blueprints Library
               </h2>
-              <p className="text-xs text-zinc-400 font-ios-sans">
-                Import complete science-backed habit stacks in 1 click.
+              <p className="text-xs text-slate-400 font-mono">
+                Import complete science-backed habit stacks into your celestial orbit in 1 click.
               </p>
             </div>
           </div>
-          <span className="text-[10px] font-bold font-ios-mono uppercase px-2 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-zinc-400">
-            Curated Packs
+          <span className="text-[10px] font-mono uppercase px-2 py-0.5 border border-gold/30 bg-gold/10 text-gold-bright">
+            Curated Protocols
           </span>
         </div>
 
@@ -512,28 +509,28 @@ export default function QuestionsSettings() {
             return (
               <div 
                 key={bp.id}
-                className="p-4 rounded-2xl border border-zinc-850 bg-zinc-950/70 hover:border-zinc-750 transition-all space-y-3 flex flex-col justify-between shadow-sm"
+                className="p-4 border border-substrate-border bg-substrate-bg/60 hover:border-gold/40 transition-all space-y-3 flex flex-col justify-between shadow-sm"
               >
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-[10px] font-bold font-ios-mono uppercase px-2 py-0.5 rounded bg-teal-500/10 text-teal-400 border border-teal-500/20">
+                    <span className="text-[10px] font-mono uppercase px-2 py-0.5 border border-gold/30 bg-gold/10 text-gold-bright">
                       {bp.badge}
                     </span>
-                    <span className="text-[10px] font-ios-mono text-zinc-500">{bp.questions.length} Habits</span>
+                    <span className="text-[10px] font-mono text-slate-400">{bp.questions.length} Metrics</span>
                   </div>
 
-                  <h3 className="text-base font-bold text-zinc-100 font-ios-serif">{bp.title}</h3>
-                  <p className="text-xs text-zinc-400 font-ios-sans leading-relaxed">{bp.description}</p>
+                  <h3 className="text-base font-serif text-slate-100">{bp.title}</h3>
+                  <p className="text-xs text-slate-400 font-mono leading-relaxed">{bp.description}</p>
 
                   <div className="pt-2 space-y-1">
                     {bp.questions.slice(0, 3).map((q, idx) => (
-                      <div key={idx} className="flex items-center space-x-1.5 text-[11px] text-zinc-300 font-ios-sans">
-                        <span className="text-teal-400 font-bold">✓</span>
+                      <div key={idx} className="flex items-center space-x-1.5 text-[11px] text-slate-300 font-mono">
+                        <span className="text-gold font-bold">✓</span>
                         <span className="truncate">{q.prompt}</span>
                       </div>
                     ))}
                     {bp.questions.length > 3 && (
-                      <span className="text-[10px] text-zinc-500 font-ios-mono block pt-0.5">
+                      <span className="text-[10px] text-slate-500 font-mono block pt-0.5">
                         +{bp.questions.length - 3} more habits included
                       </span>
                     )}
@@ -543,15 +540,14 @@ export default function QuestionsSettings() {
                 <button
                   onClick={() => handleImportBlueprint(bp)}
                   disabled={isImporting}
-                  style={{ background: 'var(--accent-gradient)', color: '#09090b' }}
-                  className="w-full py-2 rounded-xl font-bold text-xs flex items-center justify-center space-x-1.5 cursor-pointer shadow hover:opacity-95 transition-opacity disabled:opacity-50 font-ios-sans mt-2"
+                  className="w-full py-2 bg-substrate-card hover:bg-gold/15 border border-gold text-gold font-mono text-xs uppercase tracking-widest transition-all shadow-[0_0_8px_rgba(212,175,55,0.2)] flex items-center justify-center space-x-1.5 mt-2"
                 >
                   {isImporting ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
                   ) : (
                     <>
-                      <Zap className="w-3.5 h-3.5" />
-                      <span>Import {bp.title.split(' ')[0]} Pack ✨</span>
+                      <Zap className="w-3.5 h-3.5 text-gold" />
+                      <span>Import {bp.title.split(' ')[0]} Stack ✨</span>
                     </>
                   )}
                 </button>
@@ -566,42 +562,23 @@ export default function QuestionsSettings() {
         
         {/* Left Column (Preferences & Themes) */}
         <div className={`space-y-6 ${isDesktop ? 'col-span-5' : ''}`}>
-          {/* Dynamic Theme Accent Switcher */}
-          <div className="craft-card p-5 space-y-3">
+          {/* Unified Cosmic Star Atmosphere */}
+          <div className="bg-substrate-card/90 border border-substrate-border p-5 space-y-3 shadow-xl backdrop-blur-md">
             <div className="flex items-center space-x-2">
-              <Palette className="w-4 h-4" style={{ color: 'var(--accent)' }} />
-              <h2 className="text-sm font-bold text-zinc-300 font-ios-sans">UI Accent Color Themes</h2>
+              <Palette className="w-4 h-4 text-gold" />
+              <h2 className="text-xs uppercase tracking-widest font-mono font-bold text-gold">
+                Celestial Astrolabe Atmosphere
+              </h2>
             </div>
-            <div className="flex flex-wrap gap-2.5 pt-1 font-ios-sans">
-              {ACCENT_THEMES.map((t) => {
-                const isSelected = selectedTheme === t.id;
-                return (
-                  <button
-                    key={t.id}
-                    type="button"
-                    onClick={() => handleSelectTheme(t.id)}
-                    style={isSelected ? { backgroundColor: 'var(--accent-glow)', borderColor: 'var(--accent-border)', color: 'var(--accent)' } : {}}
-                    className={`flex items-center space-x-2 px-3.5 py-2 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
-                      isSelected
-                        ? 'shadow-md scale-105'
-                        : 'bg-zinc-950/40 border-zinc-850 text-zinc-450 hover:text-zinc-200'
-                    }`}
-                  >
-                    <div 
-                      className="w-3.5 h-3.5 rounded-full shadow-sm border border-black/40 shrink-0"
-                      style={{ backgroundColor: t.colorHex }}
-                    ></div>
-                    <span>{t.name}</span>
-                  </button>
-                );
-              })}
-            </div>
+            <p className="text-xs text-slate-400 font-mono">
+              Synchronized to deep space substrate with real-time starfield, randomized meteors & 528Hz harmonic resonance.
+            </p>
           </div>
 
           {/* App Feedback & Notification Preferences */}
-          <div className="craft-card p-5 space-y-4">
-            <h2 className="text-sm font-bold text-zinc-300 font-ios-sans">
-              App Feedback & Preferences
+          <div className="bg-substrate-card/90 border border-substrate-border p-5 space-y-4 shadow-xl backdrop-blur-md">
+            <h2 className="text-xs uppercase tracking-widest font-mono font-bold text-gold">
+              Space Audio & Tactile Preferences
             </h2>
 
             <div className="space-y-3">
@@ -692,29 +669,31 @@ export default function QuestionsSettings() {
           </div>
 
           {/* Data Export & Backup Section */}
-          <div className="craft-card p-5 space-y-3">
+          <div className="bg-substrate-card/90 border border-substrate-border p-5 space-y-3 shadow-xl backdrop-blur-md">
             <div className="flex items-center space-x-2">
-              <Download className="w-4 h-4" style={{ color: 'var(--accent)' }} />
-              <h2 className="text-sm font-bold text-zinc-300 font-ios-sans">Export Journal Data</h2>
+              <Download className="w-4 h-4 text-gold" />
+              <h2 className="text-xs uppercase tracking-widest font-mono font-bold text-gold">
+                Export Celestial Archives
+              </h2>
             </div>
-            <p className="text-xs text-zinc-400 leading-relaxed font-handwritten text-lg">
-              Export your reflection entries for backup or offline review.
+            <p className="text-xs text-slate-400 font-mono leading-relaxed">
+              Export your reflection entries for backup or external astronomical analysis.
             </p>
             <div className="flex space-x-3 pt-1">
               <button
                 onClick={() => handleExportData('csv')}
                 disabled={exporting}
-                className="flex items-center space-x-2 px-3.5 py-2 rounded-xl text-xs font-bold bg-zinc-950 border border-zinc-850 hover:border-zinc-700 text-zinc-200 transition-colors cursor-pointer disabled:opacity-50 font-ios-sans"
+                className="flex items-center space-x-2 px-3.5 py-2 border border-substrate-border bg-substrate-bg/60 hover:border-gold text-slate-200 transition-colors font-mono text-xs uppercase"
               >
-                <FileSpreadsheet className="w-4 h-4" style={{ color: 'var(--accent)' }} />
+                <FileSpreadsheet className="w-4 h-4 text-gold" />
                 <span>Export CSV</span>
               </button>
               <button
                 onClick={() => handleExportData('json')}
                 disabled={exporting}
-                className="flex items-center space-x-2 px-3.5 py-2 rounded-xl text-xs font-bold bg-zinc-950 border border-zinc-850 hover:border-zinc-700 text-zinc-200 transition-colors cursor-pointer disabled:opacity-50 font-ios-sans"
+                className="flex items-center space-x-2 px-3.5 py-2 border border-substrate-border bg-substrate-bg/60 hover:border-gold text-slate-200 transition-colors font-mono text-xs uppercase"
               >
-                <FileCode className="w-4 h-4" style={{ color: 'var(--accent)' }} />
+                <FileCode className="w-4 h-4 text-gold" />
                 <span>Export JSON</span>
               </button>
             </div>
@@ -724,9 +703,9 @@ export default function QuestionsSettings() {
         {/* Right Column (Add Prompt Form & Manage Prompts Feed) */}
         <div className={`space-y-6 ${isDesktop ? 'col-span-7' : ''}`}>
           {/* Add new question form */}
-          <div className="craft-card p-5 space-y-4">
-            <h2 className="text-sm font-bold text-zinc-300 font-ios-sans">
-              Add Custom Journal Prompt
+          <div className="bg-substrate-card/90 border border-substrate-border p-5 space-y-4 shadow-xl backdrop-blur-md">
+            <h2 className="text-xs uppercase tracking-widest font-mono font-bold text-gold">
+              Add Custom Habit Metric
             </h2>
             <form onSubmit={handleAddQuestion} className="space-y-4">
               <div className="grid gap-4 sm:grid-cols-12">
@@ -830,8 +809,8 @@ export default function QuestionsSettings() {
             </div>
 
             {questions.length === 0 ? (
-              <div className="craft-card p-6 text-center border-zinc-850 text-zinc-450 text-sm font-handwritten text-xl">
-                You don't have any prompts yet. Create one above!
+              <div className="bg-substrate-card/90 border border-substrate-border p-6 text-center text-slate-400 font-mono text-xs shadow-xl">
+                You do not have any metrics charted yet. Create one above!
               </div>
             ) : (
               <div className="space-y-3">
@@ -851,10 +830,10 @@ export default function QuestionsSettings() {
                   return (
                     <div 
                       key={q.id} 
-                      className={`craft-card p-4 border transition-all duration-200 ${
+                      className={`bg-substrate-card/90 p-4 border transition-all duration-200 shadow-lg ${
                         q.is_active 
-                          ? 'border-zinc-850 bg-zinc-900/10' 
-                          : 'border-zinc-850/40 bg-zinc-950/40 opacity-55'
+                          ? 'border-substrate-border' 
+                          : 'border-substrate-border/40 opacity-55'
                       }`}
                     >
                       {isEditingThis ? (
