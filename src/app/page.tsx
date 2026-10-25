@@ -503,6 +503,9 @@ export default function Dashboard() {
           levelTitle: levelInfo.title,
           totalXP: levelInfo.totalXP,
           totalLogs: allLogDates.length,
+          consistencyRate: Math.round(completionRate * 100),
+          goodHabitsCount: loggedCount,
+          badHabitsAvoided: questions.filter((q) => q.habit_type === 'bad' && answers[q.id] === false).length,
           periodName: selectedDate,
         }}
       />
