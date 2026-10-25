@@ -196,7 +196,7 @@ export default function LoginPage() {
           </div>
         )}
 
-        <div className="craft-card p-8 rounded-2xl shadow-2xl border border-zinc-800/80 space-y-5">
+        <div className="bg-substrate-card/90 border border-substrate-border p-8 shadow-2xl space-y-5 backdrop-blur-md">
           
           {/* iOS Passkey / Face ID Button */}
           {passkeyAvailable && (

@@ -163,7 +163,7 @@ export default function ShareableCardModal({ isOpen, onClose, stats }: Shareable
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-xl bg-black/80 animate-fade-in">
-      <div className="craft-card w-full max-w-md p-5 space-y-4 border-2 border-teal-500/40 bg-zinc-950 relative shadow-2xl">
+      <div className="bg-substrate-card/95 border border-gold/40 w-full max-w-md p-5 space-y-4 relative shadow-2xl backdrop-blur-xl">
         
         {/* Header Controls */}
         <div className="flex items-center justify-between border-b border-zinc-850 pb-3">

@@ -62,7 +62,6 @@ export default function QuestionsSettings() {
   const [editingHabitType, setEditingHabitType] = useState<'good' | 'bad' | 'neutral'>('good');
   const [editingIcon, setEditingIcon] = useState('check-square');
 
-  const [selectedTheme, setSelectedTheme] = useState('teal');
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [hapticsEnabled, setHapticsEnabled] = useState(true);
   const [randomizeEnabled, setRandomizeEnabled] = useState(false);
@@ -123,21 +122,11 @@ export default function QuestionsSettings() {
     const savedRandomize = localStorage.getItem('reflect_randomize_questions') === 'true';
     const savedReminder = localStorage.getItem('reflect_reminder_time') || '22:00';
 
-    setSelectedTheme(savedTheme);
     setSoundEnabled(savedSound);
     setHapticsEnabled(savedHaptics);
     setRandomizeEnabled(savedRandomize);
     setReminderTime(savedReminder);
-
-    document.documentElement.setAttribute('data-theme', savedTheme);
   }, [user]);
-
-  const handleSelectTheme = (themeId: string) => {
-    setSelectedTheme(themeId);
-    localStorage.setItem('reflect_accent_theme', themeId);
-    document.documentElement.setAttribute('data-theme', themeId);
-    window.dispatchEvent(new Event('reflect_theme_change'));
-  };
 
   const handleToggleSound = () => {
     const val = !soundEnabled;
