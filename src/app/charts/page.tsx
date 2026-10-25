@@ -9,10 +9,10 @@ import { calculateStreakWithFreezes } from '@/lib/feedback';
 import ShareableCardModal from '@/components/ShareableCardModal';
 import { 
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, 
-  AreaChart, Area, PieChart, Pie, Cell, CartesianGrid, Line
+  AreaChart, Area, CartesianGrid, Line
 } from 'recharts';
 import { 
-  BarChart3, TrendingUp, Smile, Bed, Award, 
+  BarChart3, Smile, Bed, Award, 
   Loader2, Activity, PieChart as PieIcon, Sparkles, SlidersHorizontal,
   ArrowRightLeft, Calendar as CalendarIcon, ChevronLeft, ChevronRight, Share2, 
   BrainCircuit, Zap, CheckCircle2, ShieldCheck, Flame
@@ -354,31 +354,6 @@ export default function ChartsPage() {
     return insights;
   };
 
-  // 14-Day Activity Trend Data
-  const get14DayTrendData = () => {
-    const logMap = new Map(logs.map((l) => [l.date, l]));
-    const data = [];
-    const now = new Date();
-
-    for (let i = 13; i >= 0; i--) {
-      const d = new Date(now);
-      d.setDate(d.getDate() - i);
-      const yyyy = d.getFullYear();
-      const mm = String(d.getMonth() + 1).padStart(2, '0');
-      const dd = String(d.getDate()).padStart(2, '0');
-      const dateStr = `${yyyy}-${mm}-${dd}`;
-
-      const shortLabel = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-      const entry = logMap.get(dateStr);
-
-      data.push({
-        date: shortLabel,
-        checkIn: entry ? 1 : 0,
-      });
-    }
-    return data;
-  };
-
   // Prepare Habit Completion Rates
   const getHabitCompletionData = () => {
     if (!questions || questions.length === 0 || !logs || logs.length === 0) return [];
@@ -463,7 +438,6 @@ export default function ChartsPage() {
   const correlationData = getCustomCorrelationData();
   const correlationInsight = getCorrelationInsightText();
   const aiInsights = getAIBehavioralInsights();
-  const trendData = get14DayTrendData();
   const habitData = getHabitCompletionData();
   const metrics = getSummaryMetrics();
   const calendarGrid = getMonthlyCalendarGrid();
@@ -475,11 +449,6 @@ export default function ChartsPage() {
   const datesList = logs.map((l) => l.date);
   const currentStreak = calculateStreakWithFreezes(datesList).currentStreak;
   const levelInfo = calculateUserLevel(logs);
-
-  const pieData = [
-    { name: 'Completed Days', value: metrics.consistencyRate },
-    { name: 'Remaining', value: 100 - metrics.consistencyRate },
-  ];
 
   const CUSTOM_TOOLTIP = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
@@ -870,97 +839,32 @@ export default function ChartsPage() {
         </div>
       </div>
 
-      {/* Main Charts Grid */}
-      <div className={`grid gap-6 ${isDesktop ? 'grid-cols-2' : 'grid-cols-1'}`}>
-        
-        {/* Chart 1: 14-Day Check-in Activity Trend */}
-        <div className="bg-substrate-card/90 border border-substrate-border p-5 space-y-4 shadow-xl backdrop-blur-md">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <TrendingUp className="w-4 h-4 text-gold" />
-              <h2 className="text-sm font-serif text-slate-200">14-Day Orbital Activity Trend</h2>
-            </div>
-            <span className="text-[10px] text-slate-500 font-mono">Daily Check-ins</span>
+      {/* Habit Success & Avoidance Rates Full-Width Analytics */}
+      <div className="bg-substrate-card/90 border border-substrate-border p-5 space-y-4 shadow-xl backdrop-blur-md">
+        <div className="flex items-center justify-between border-b border-substrate-border pb-3">
+          <div className="flex items-center space-x-2">
+            <Award className="w-4 h-4 text-emerald-400" />
+            <h2 className="text-sm font-serif text-slate-200">Individual Habit Success Rates (%)</h2>
           </div>
+          <span className="text-[10px] text-slate-500 font-mono">Virtue Completion & Vice Avoidance</span>
+        </div>
 
-          <div className="h-60 w-full pt-2">
+        <div className="h-72 w-full pt-2">
+          {habitData.length === 0 ? (
+            <div className="h-full flex items-center justify-center text-xs text-slate-500 font-mono">
+              No active habit data charted yet.
+            </div>
+          ) : (
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={trendData}>
+              <BarChart data={habitData} layout="vertical" margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                <XAxis dataKey="date" stroke="#71717a" fontSize={10} tickLine={false} />
-                <YAxis stroke="#71717a" fontSize={10} domain={[0, 1]} ticks={[0, 1]} tickLine={false} />
+                <XAxis type="number" domain={[0, 100]} stroke="#71717a" fontSize={10} tickFormatter={(v) => `${v}%`} />
+                <YAxis type="category" dataKey="name" stroke="#cbd5e1" fontSize={11} width={130} tickLine={false} />
                 <Tooltip content={<CUSTOM_TOOLTIP />} />
-                <Bar dataKey="checkIn" name="Completed" fill="#D4AF37" radius={[2, 2, 0, 0]} />
+                <Bar dataKey="completionRate" name="Success Rate (%)" fill="#D4AF37" radius={[0, 3, 3, 0]} />
               </BarChart>
             </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* Chart 2: Habit Completion & Bad Habit Avoidance Rates */}
-        <div className="bg-substrate-card/90 border border-substrate-border p-5 space-y-4 shadow-xl backdrop-blur-md">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <Award className="w-4 h-4 text-emerald-400" />
-              <h2 className="text-sm font-serif text-slate-200">Habit Success Rates (%)</h2>
-            </div>
-            <span className="text-[10px] text-slate-500 font-mono">Virtue / Vice Avoidance</span>
-          </div>
-
-          <div className="h-60 w-full pt-2">
-            {habitData.length === 0 ? (
-              <div className="h-full flex items-center justify-center text-xs text-slate-500 font-mono">
-                No active habit data available yet.
-              </div>
-            ) : (
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={habitData} layout="vertical">
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                  <XAxis type="number" domain={[0, 100]} stroke="#71717a" fontSize={10} />
-                  <YAxis type="category" dataKey="name" stroke="#71717a" fontSize={10} width={110} tickLine={false} />
-                  <Tooltip content={<CUSTOM_TOOLTIP />} />
-                  <Bar dataKey="completionRate" name="Success Rate (%)" fill="#10b981" radius={[0, 2, 2, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            )}
-          </div>
-        </div>
-
-        {/* Chart 3: 30-Day Consistency Doughnut */}
-        <div className="bg-substrate-card/90 border border-substrate-border p-5 space-y-4 col-span-full shadow-xl backdrop-blur-md">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <PieIcon className="w-4 h-4 text-purple-400" />
-              <h2 className="text-sm font-bold text-zinc-200 font-ios-sans">Monthly Consistency Ratio</h2>
-            </div>
-            <span className="text-[10px] text-zinc-500 font-ios-mono">Overall Ratio</span>
-          </div>
-
-          <div className="h-60 w-full flex items-center justify-center relative">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={pieData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={65}
-                  outerRadius={90}
-                  paddingAngle={5}
-                  dataKey="value"
-                >
-                  <Cell key="cell-0" fill="var(--accent)" />
-                  <Cell key="cell-1" fill="rgba(255,255,255,0.05)" />
-                </Pie>
-                <Tooltip content={<CUSTOM_TOOLTIP />} />
-              </PieChart>
-            </ResponsiveContainer>
-            
-            <div className="absolute flex flex-col items-center justify-center text-center">
-              <span className="text-3xl font-black font-ios-rounded" style={{ color: 'var(--accent)' }}>
-                {metrics.consistencyRate}%
-              </span>
-              <span className="text-[10px] text-zinc-500 font-ios-mono font-bold uppercase">Consistency</span>
-            </div>
-          </div>
+          )}
         </div>
       </div>
     </div>

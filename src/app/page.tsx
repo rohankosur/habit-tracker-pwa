@@ -5,7 +5,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useDeviceLayout } from '@/contexts/DeviceLayoutContext';
 import { supabase } from '@/lib/supabase';
 import HeaderHUD from '@/components/HeaderHUD';
-import DynamicIslandHUD from '@/components/DynamicIslandHUD';
 import ChronoDial from '@/components/ChronoDial';
 import HabitList from '@/components/HabitList';
 import SavedEntries from '@/components/SavedEntries';
@@ -394,7 +393,6 @@ export default function Dashboard() {
 
       triggerVariableReward();
       playCompletionChime();
-      playCelestialLockGong();
       triggerHaptic(40);
       if (selectedDate === getLocalTodayDateStr()) updateAppBadge(0);
       setMotivationalQuote(getRandomQuote());
@@ -468,20 +466,15 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-4 pb-12">
-      {/* Floating Dynamic Island HUD in Space */}
-      <DynamicIslandHUD
+      {/* Unified Cosmic Header HUD */}
+      <HeaderHUD
+        selectedDate={selectedDate}
+        onSelectDate={(d) => setSelectedDate(d)}
         streak={streakInfo.currentStreak}
         netWillpowerScore={netWillpower}
         onOpenUrgeDefuser={() => setShowUrgeDefuser(true)}
         onTriggerVoiceDebrief={handleTriggerVoiceDebrief}
         isListening={isVoiceDebriefing}
-      />
-
-      {/* Top Header HUD */}
-      <HeaderHUD
-        selectedDate={selectedDate}
-        onSelectDate={(d) => setSelectedDate(d)}
-        streak={streakInfo.currentStreak}
       />
 
       {/* Urge Defuser 90s Breath Modal */}

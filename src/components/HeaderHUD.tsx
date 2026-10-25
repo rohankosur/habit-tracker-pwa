@@ -1,9 +1,14 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
-import { Bell, BellOff, Send, X, Info, Share, CheckCircle, AlertCircle, ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
+import { 
+  Bell, BellOff, ChevronLeft, ChevronRight, Calendar, 
+  ShieldAlert, Mic, Flame, Sparkles, Loader2, CheckCircle2, AlertCircle
+} from 'lucide-react';
+import { getCurrentCircadianInfo, CircadianInfo } from '@/lib/circadian';
+import { triggerHaptic } from '@/lib/feedback';
 import { DEFAULT_VAPID_PUBLIC_KEY } from '@/lib/vapid';
 
 function urlBase64ToUint8Array(base64String: string) {
@@ -24,7 +29,11 @@ interface HeaderHUDProps {
   onSelectDate: (date: string) => void;
   maxDate?: string;
   streak?: number;
+  netWillpowerScore?: number;
   isOnline?: boolean;
+  onOpenUrgeDefuser?: () => void;
+  onTriggerVoiceDebrief?: () => void;
+  isListening?: boolean;
 }
 
 export default function HeaderHUD({
@@ -32,25 +41,25 @@ export default function HeaderHUD({
   onSelectDate,
   maxDate,
   streak = 0,
+  netWillpowerScore = 0,
   isOnline: propIsOnline,
+  onOpenUrgeDefuser,
+  onTriggerVoiceDebrief,
+  isListening = false,
 }: HeaderHUDProps) {
   const { user } = useAuth();
   const [isOnline, setIsOnline] = useState(propIsOnline ?? true);
-  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [circadian, setCircadian] = useState<CircadianInfo | null>(null);
   const [permission, setPermission] = useState<NotificationSetting | 'loading'>('loading');
   const [subscription, setSubscription] = useState<any>(null);
-  const [loading, setLoading] = useState(false);
-  const [testing, setTesting] = useState(false);
-  const [isIOSDevice, setIsIOSDevice] = useState(false);
-  const [isStandaloneMode, setIsStandaloneMode] = useState(false);
-  const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' | 'info' } | null>(null);
+  const [notifLoading, setNotifLoading] = useState(false);
+  const [notifNotice, setNotifNotice] = useState<string | null>(null);
 
-  const drawerRef = useRef<HTMLDivElement | null>(null);
   const dateInputRef = useRef<HTMLInputElement | null>(null);
 
+  // Online status listener
   useEffect(() => {
     if (typeof window === 'undefined') return;
-
     if (propIsOnline === undefined) {
       setIsOnline(navigator.onLine);
       const handleOnline = () => setIsOnline(true);
@@ -66,15 +75,18 @@ export default function HeaderHUD({
     }
   }, [propIsOnline]);
 
+  // Circadian tracker
+  useEffect(() => {
+    setCircadian(getCurrentCircadianInfo());
+    const interval = setInterval(() => {
+      setCircadian(getCurrentCircadianInfo());
+    }, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Notification initialization
   useEffect(() => {
     if (typeof window === 'undefined') return;
-
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
-    const isStandalone = (window.navigator as any).standalone || window.matchMedia('(display-mode: standalone)').matches;
-
-    setIsIOSDevice(isIOS);
-    setIsStandaloneMode(isStandalone);
-
     if (!('Notification' in window) || !('serviceWorker' in navigator)) {
       setPermission('denied');
       return;
@@ -88,40 +100,83 @@ export default function HeaderHUD({
           setSubscription(sub);
         });
       })
-      .catch((err) => {
-        console.warn('Service Worker not ready yet', err);
-      });
+      .catch(() => {});
   }, []);
 
-  // Close drawer on click outside
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (drawerRef.current && !drawerRef.current.contains(e.target as Node)) {
-        setDrawerOpen(false);
+  // Quick Notification Toggle
+  const handleToggleNotifications = async () => {
+    if (!user || notifLoading) return;
+    triggerHaptic(20);
+    setNotifLoading(true);
+
+    try {
+      const registration = await navigator.serviceWorker.ready;
+
+      if (subscription) {
+        const endpoint = subscription.endpoint;
+        await subscription.unsubscribe();
+        setSubscription(null);
+        await fetch('/api/subscribe', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ endpoint, user_id: user.id }),
+        });
+        showNotice('Daily reminders muted.');
+      } else {
+        const reqPerm = await Notification.requestPermission();
+        setPermission(reqPerm as NotificationSetting);
+
+        if (reqPerm !== 'granted') {
+          showNotice('Notification permission blocked in browser.');
+          setNotifLoading(false);
+          return;
+        }
+
+        const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || DEFAULT_VAPID_PUBLIC_KEY;
+        const converted = urlBase64ToUint8Array(vapidKey);
+
+        const newSub = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: converted,
+        });
+
+        setSubscription(newSub);
+        await fetch('/api/subscribe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ subscription: newSub, user_id: user.id }),
+        });
+
+        showNotice('Daily reminders synchronized.');
       }
-    };
-    if (drawerOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
+    } catch (e: any) {
+      showNotice(e.message || 'Notification error.');
+    } finally {
+      setNotifLoading(false);
     }
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [drawerOpen]);
+  };
+
+  const showNotice = (msg: string) => {
+    setNotifNotice(msg);
+    setTimeout(() => setNotifNotice(null), 3000);
+  };
 
   const handlePrevDay = () => {
     if (!selectedDate) return;
+    triggerHaptic(10);
     const [y, m, d] = selectedDate.split('-').map(Number);
     const date = new Date(y, m - 1, d);
     date.setDate(date.getDate() - 1);
-    const prevY = date.getFullYear();
-    const prevM = String(date.getMonth() + 1).padStart(2, '0');
-    const prevD = String(date.getDate()).padStart(2, '0');
-    onSelectDate(`${prevY}-${prevM}-${prevD}`);
+    const nextY = date.getFullYear();
+    const nextM = String(date.getMonth() + 1).padStart(2, '0');
+    const nextD = String(date.getDate()).padStart(2, '0');
+    onSelectDate(`${nextY}-${nextM}-${nextD}`);
   };
 
   const handleNextDay = () => {
     if (!selectedDate) return;
     if (maxDate && selectedDate >= maxDate) return;
+    triggerHaptic(10);
     const [y, m, d] = selectedDate.split('-').map(Number);
     const date = new Date(y, m - 1, d);
     date.setDate(date.getDate() + 1);
@@ -134,151 +189,52 @@ export default function HeaderHUD({
     }
   };
 
-  const handleTestNotification = async () => {
-    if (!user) return;
-    setTesting(true);
-    setMessage(null);
-
-    try {
-      const res = await fetch('/api/test-notification', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: user.id }),
-      });
-
-      const data = await res.json();
-
-      if (res.ok && data.success) {
-        setMessage({ text: 'Test push notification dispatched.', type: 'success' });
-      } else {
-        if ('Notification' in window && Notification.permission === 'granted') {
-          if ('serviceWorker' in navigator) {
-            const reg = await navigator.serviceWorker.ready;
-            reg.showNotification('Reflect Notification Test 🔔', {
-              body: 'Daily precision reflection reminder active.',
-              icon: '/icons/icon-192x192.png',
-              badge: '/icons/icon-192x192.png',
-              data: { url: '/' },
-            });
-            setMessage({ text: 'Local test notification triggered.', type: 'success' });
-          } else {
-            new Notification('Reflect Notification Test 🔔', {
-              body: 'Notifications enabled.',
-            });
-            setMessage({ text: 'Local notification popped up.', type: 'success' });
-          }
-        } else {
-          throw new Error(data.error || 'Enable notifications before testing.');
-        }
-      }
-    } catch (err: any) {
-      setMessage({ text: err.message || 'Notification test failed.', type: 'error' });
-    } finally {
-      setTesting(false);
-    }
-  };
-
-  const handleToggleNotifications = async () => {
-    if (!user) return;
-    setLoading(true);
-    setMessage(null);
-
-    try {
-      const registration = await navigator.serviceWorker.ready;
-
-      if (subscription) {
-        const endpoint = subscription.endpoint;
-        await subscription.unsubscribe();
-        setSubscription(null);
-
-        await fetch('/api/subscribe', {
-          method: 'DELETE',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ endpoint, user_id: user.id }),
-        });
-
-        setMessage({ text: 'Reminders disabled.', type: 'info' });
-      } else {
-        const reqPermission = await Notification.requestPermission();
-        setPermission(reqPermission as NotificationSetting);
-
-        if (reqPermission !== 'granted') {
-          setMessage({ text: 'Permission denied in browser settings.', type: 'error' });
-          setLoading(false);
-          return;
-        }
-
-        const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || DEFAULT_VAPID_PUBLIC_KEY;
-        const convertedVapidKey = urlBase64ToUint8Array(vapidPublicKey);
-
-        const newSub = await registration.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: convertedVapidKey,
-        });
-
-        setSubscription(newSub);
-
-        const res = await fetch('/api/subscribe', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            subscription: newSub,
-            user_id: user.id,
-          }),
-        });
-
-        if (res.ok) {
-          setMessage({ text: 'Reminders enabled successfully.', type: 'success' });
-        } else {
-          const errData = await res.json();
-          throw new Error(errData.error || 'Failed to register subscription.');
-        }
-      }
-    } catch (err: any) {
-      setMessage({ text: err.message || 'Error configuring reminders.', type: 'error' });
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const isNextDisabled = Boolean(maxDate && selectedDate >= maxDate);
 
   return (
-    <header className="sticky top-0 z-50 w-full h-[44px] backdrop-blur-md bg-substrate-bg/90 border-b border-substrate-border flex items-center justify-between px-3 sm:px-6 select-none">
-      {/* Left: App Identity */}
-      <div className="flex items-center space-x-2">
-        <Link href="/" className="flex items-center space-x-2 group">
+    <header className="sticky top-0 z-50 w-full h-[48px] backdrop-blur-xl bg-substrate-bg/90 border-b border-substrate-border flex items-center justify-between px-3 sm:px-6 select-none transition-all shadow-xl">
+      {/* Left: Identity + Circadian Phase */}
+      <div className="flex items-center space-x-2.5">
+        <Link href="/" className="flex items-center space-x-1.5 group">
           <span className="font-mono text-xs tracking-[0.25em] text-gold font-bold uppercase hover:text-gold-bright transition-colors">
             REFLECT
           </span>
         </Link>
+
+        {circadian && (
+          <div className="hidden sm:flex items-center space-x-1 px-2 py-0.5 border border-substrate-border bg-substrate-card/60 text-[9px] font-mono text-slate-300">
+            <span>{circadian.icon}</span>
+            <span className="text-gold font-bold uppercase">{circadian.label}</span>
+            <span className="text-slate-500">({circadian.countdownMinutes}m)</span>
+          </div>
+        )}
       </div>
 
-      {/* Center: Minimal Date Navigation < 2026-10-23 > */}
-      <div className="flex items-center space-x-1.5 font-mono text-xs text-slate-300">
+      {/* Center: Minimal Date Navigation < 2026-10-25 > */}
+      <div className="flex items-center space-x-1 font-mono text-xs text-slate-300">
         <button
           type="button"
           onClick={handlePrevDay}
-          className="p-1 hover:text-gold text-slate-400 hover:bg-white/[0.03] transition-colors cursor-pointer"
+          className="p-1 hover:text-gold transition-colors cursor-pointer"
           aria-label="Previous day"
-          title="Previous Day"
         >
           <ChevronLeft className="w-3.5 h-3.5" />
         </button>
 
-        <div className="relative">
+        <div className="relative flex items-center">
           <button
             type="button"
-            onClick={() => dateInputRef.current?.showPicker?.() || dateInputRef.current?.focus()}
-            className="px-2 py-0.5 tracking-wider hover:text-gold-bright hover:bg-white/[0.04] transition-colors cursor-pointer border border-transparent hover:border-substrate-border"
+            onClick={() => dateInputRef.current?.showPicker?.()}
+            className="flex items-center space-x-1 px-1.5 py-0.5 hover:text-gold transition-colors cursor-pointer text-slate-200"
           >
-            {selectedDate || '---- -- --'}
+            <Calendar className="w-3 h-3 text-gold/70" />
+            <span className="tracking-wide text-xs">{selectedDate}</span>
           </button>
           <input
             ref={dateInputRef}
             type="date"
-            max={maxDate}
             value={selectedDate}
+            max={maxDate}
             onChange={(e) => e.target.value && onSelectDate(e.target.value)}
             className="absolute inset-0 opacity-0 pointer-events-none w-0 h-0"
           />
@@ -288,135 +244,100 @@ export default function HeaderHUD({
           type="button"
           onClick={handleNextDay}
           disabled={isNextDisabled}
-          className={`p-1 transition-colors cursor-pointer ${
-            isNextDisabled ? 'opacity-25 pointer-events-none' : 'hover:text-gold text-slate-400 hover:bg-white/[0.03]'
+          className={`p-1 transition-colors ${
+            isNextDisabled ? 'text-slate-700 cursor-not-allowed' : 'hover:text-gold cursor-pointer'
           }`}
           aria-label="Next day"
-          title="Next Day"
         >
           <ChevronRight className="w-3.5 h-3.5" />
         </button>
       </div>
 
-      {/* Right: Streak Indicator, Push Reminder Bell, Sync Indicator */}
-      <div className="flex items-center space-x-2.5">
+      {/* Right: Metrics + Quick Actions */}
+      <div className="flex items-center space-x-2">
+        {/* Willpower Score */}
+        <div className="hidden md:flex items-center space-x-1 px-2 py-0.5 border border-gold/30 bg-gold/10 text-gold-bright text-[10px] font-mono font-bold">
+          <Sparkles className="w-3 h-3 text-gold" />
+          <span>{netWillpowerScore > 0 ? `+${netWillpowerScore}` : netWillpowerScore} WP</span>
+        </div>
+
         {/* Streak Indicator */}
-        <div 
-          className="px-2 py-0.5 border border-gold/30 bg-gold/5 font-mono text-[11px] text-gold tracking-wider flex items-center space-x-1"
-          title={`Active Streak: ${streak} Days`}
-        >
+        <div className="flex items-center space-x-1 px-2 py-0.5 border border-substrate-border bg-substrate-card/60 text-slate-300 font-mono text-[10px] font-bold">
+          <Flame className="w-3 h-3 text-amber-400" />
           <span>{streak}D</span>
         </div>
 
-        {/* Push Reminder Bell Button */}
-        <div className="relative" ref={drawerRef}>
+        {/* Voice Debrief Trigger */}
+        {onTriggerVoiceDebrief && (
           <button
             type="button"
-            onClick={() => setDrawerOpen(!drawerOpen)}
-            className="p-1 text-slate-300 hover:text-gold transition-colors relative cursor-pointer"
-            title="Notification Settings & Testing"
-            aria-label="Notification Settings"
+            onClick={() => {
+              triggerHaptic(20);
+              onTriggerVoiceDebrief();
+            }}
+            className={`p-1.5 border transition-all cursor-pointer ${
+              isListening
+                ? 'border-red-500 bg-red-950/60 text-red-300 animate-pulse'
+                : 'border-substrate-border hover:border-gold text-slate-400 hover:text-gold'
+            }`}
+            title="Speak Daily Debrief"
           >
-            <Bell className="w-4 h-4" style={{ strokeWidth: 1.5 }} />
-            {/* Status Dot */}
-            <span
-              className={`absolute top-0 right-0 w-1.5 h-1.5 rounded-full ${
-                subscription
-                  ? 'bg-gold shadow-[0_0_6px_rgba(212,175,55,0.8)]'
-                  : 'bg-slate-600'
-              }`}
-            />
+            <Mic className="w-3.5 h-3.5" />
           </button>
+        )}
 
-          {/* Slide-out Menu Drawer / Popover */}
-          {drawerOpen && (
-            <div className="absolute right-0 top-8 w-72 bg-substrate-bg border border-substrate-border shadow-2xl p-4 z-50 corner-brackets animate-fade-in text-slate-200">
-              <div className="corner-bracket-tr" />
-              <div className="corner-bracket-bl" />
-              
-              <div className="flex items-center justify-between border-b border-substrate-border pb-2.5 mb-3">
-                <span className="font-serif text-xs uppercase tracking-wider text-gold font-bold">
-                  Push Reminders
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setDrawerOpen(false)}
-                  className="text-slate-400 hover:text-gold transition-colors p-0.5"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              </div>
+        {/* SOS Emergency Urge Defuser */}
+        {onOpenUrgeDefuser && (
+          <button
+            type="button"
+            onClick={() => {
+              triggerHaptic(30);
+              onOpenUrgeDefuser();
+            }}
+            className="px-2 py-1 bg-red-950/40 hover:bg-red-900/60 border border-red-500/50 text-red-300 font-mono text-[9px] uppercase tracking-wider flex items-center space-x-1 transition-all shadow-[0_0_10px_rgba(239,68,68,0.2)] cursor-pointer"
+            title="Emergency SOS Urge Defuser"
+          >
+            <ShieldAlert className="w-3 h-3 text-red-400 animate-pulse" />
+            <span className="hidden sm:inline">SOS</span>
+          </button>
+        )}
 
-              {isIOSDevice && !isStandaloneMode ? (
-                <div className="space-y-2 text-xs font-mono text-slate-400">
-                  <div className="flex items-center space-x-1 text-gold">
-                    <Info className="w-3.5 h-3.5" />
-                    <span>iOS Configuration</span>
-                  </div>
-                  <p className="text-[11px] leading-relaxed">
-                    Install to Home Screen via Safari Share → "Add to Home Screen" to activate push chimes.
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-3 font-mono text-xs">
-                  <div className="flex items-center justify-between text-[11px] text-slate-400">
-                    <span>Status:</span>
-                    <span className={subscription ? 'text-gold' : 'text-slate-500'}>
-                      {subscription ? 'ACTIVE' : 'INACTIVE'}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center space-x-2 pt-1">
-                    <button
-                      type="button"
-                      onClick={handleToggleNotifications}
-                      disabled={loading}
-                      className="flex-1 py-1.5 px-2 bg-substrate-card border border-substrate-border hover:border-substrate-borderActive text-slate-200 hover:text-gold text-[11px] uppercase tracking-wider transition-colors cursor-pointer"
-                    >
-                      {loading ? 'Processing...' : subscription ? 'Disable' : 'Enable'}
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={handleTestNotification}
-                      disabled={testing}
-                      className="py-1.5 px-2.5 bg-substrate-card border border-substrate-border hover:border-substrate-borderActive text-gold text-[11px] uppercase tracking-wider transition-colors cursor-pointer flex items-center space-x-1"
-                      title="Trigger push notification test"
-                    >
-                      <Send className="w-3 h-3" />
-                      <span>{testing ? '...' : 'Test'}</span>
-                    </button>
-                  </div>
-
-                  {message && (
-                    <div
-                      className={`p-2 text-[10px] border leading-relaxed ${
-                        message.type === 'success'
-                          ? 'border-emerald-500/40 text-emerald-300 bg-emerald-500/10'
-                          : message.type === 'error'
-                          ? 'border-red-500/40 text-red-300 bg-red-500/10'
-                          : 'border-gold/30 text-gold-bright bg-gold/5'
-                      }`}
-                    >
-                      {message.text}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Online Sync Indicator Dot */}
-        <div
-          className={`w-1.5 h-1.5 rounded-full ${
-            isOnline
-              ? 'bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)]'
-              : 'bg-amber-400 animate-pulse shadow-[0_0_6px_rgba(251,191,36,0.8)]'
+        {/* Push Notification Toggle Button */}
+        <button
+          type="button"
+          onClick={handleToggleNotifications}
+          disabled={notifLoading}
+          className={`p-1.5 border transition-all cursor-pointer ${
+            subscription
+              ? 'border-gold/40 text-gold bg-gold/10'
+              : 'border-substrate-border text-slate-500 hover:text-slate-300'
           }`}
-          title={isOnline ? 'Online (Cloud Synchronized)' : 'Offline (Local Substrate Cache)'}
+          title={subscription ? 'Reminders Active (Click to Mute)' : 'Enable Daily Push Reminders'}
+        >
+          {notifLoading ? (
+            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+          ) : subscription ? (
+            <Bell className="w-3.5 h-3.5" />
+          ) : (
+            <BellOff className="w-3.5 h-3.5" />
+          )}
+        </button>
+
+        {/* Online Sync Indicator */}
+        <span
+          className={`w-2 h-2 rounded-full inline-block shrink-0 ${
+            isOnline ? 'bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)]' : 'bg-red-500'
+          }`}
+          title={isOnline ? 'Connected to Orbit' : 'Offline Mode'}
         />
       </div>
+
+      {/* Micro Toast Notification Notice */}
+      {notifNotice && (
+        <div className="absolute top-12 right-4 px-3 py-1.5 bg-substrate-card border border-gold/40 shadow-2xl text-[10px] font-mono text-slate-200 animate-fade-in z-50">
+          {notifNotice}
+        </div>
+      )}
     </header>
   );
 }

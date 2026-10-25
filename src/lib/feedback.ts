@@ -61,62 +61,11 @@ export function shuffleArray<T>(array: T[]): T[] {
   return arr;
 }
 
-// Global Audio Context Singleton to prevent AudioContext thread leaks
-let globalAudioCtx: AudioContext | null = null;
+import { playCelestialLockGong } from '@/lib/cosmicAudio';
 
-function getSharedAudioContext(): AudioContext | null {
-  if (typeof window === 'undefined') return null;
-  const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
-  if (!AudioCtx) return null;
-
-  if (!globalAudioCtx || globalAudioCtx.state === 'closed') {
-    globalAudioCtx = new AudioCtx();
-  }
-  return globalAudioCtx;
-}
-
-// 4. Audio Chime Synthesis (Singleton AudioContext)
+// 4. Audio Chime (Delegates to unified cosmic audio synthesizer)
 export function playCompletionChime() {
-  if (typeof window === 'undefined') return;
-  const soundEnabled = localStorage.getItem('reflect_sound_enabled') !== 'false';
-  if (!soundEnabled) return;
-
-  try {
-    const ctx = getSharedAudioContext();
-    if (!ctx) return;
-    
-    if (ctx.state === 'suspended') {
-      ctx.resume().catch(() => {});
-    }
-
-    const now = ctx.currentTime;
-
-    const osc1 = ctx.createOscillator();
-    const gain1 = ctx.createGain();
-    osc1.type = 'sine';
-    osc1.frequency.setValueAtTime(523.25, now);
-    gain1.gain.setValueAtTime(0.15, now);
-    gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
-
-    osc1.connect(gain1);
-    gain1.connect(ctx.destination);
-    osc1.start(now);
-    osc1.stop(now + 0.4);
-
-    const osc2 = ctx.createOscillator();
-    const gain2 = ctx.createGain();
-    osc2.type = 'sine';
-    osc2.frequency.setValueAtTime(659.25, now + 0.08);
-    gain2.gain.setValueAtTime(0.2, now + 0.08);
-    gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
-
-    osc2.connect(gain2);
-    gain2.connect(ctx.destination);
-    osc2.start(now + 0.08);
-    osc2.stop(now + 0.6);
-  } catch (err) {
-    console.warn('AudioContext warning:', err);
-  }
+  playCelestialLockGong();
 }
 
 // 5. Mobile Haptics
