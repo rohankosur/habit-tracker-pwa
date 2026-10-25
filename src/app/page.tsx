@@ -480,10 +480,8 @@ export default function Dashboard() {
       {/* Top Header HUD */}
       <HeaderHUD
         selectedDate={selectedDate}
-        onDateChange={(d) => setSelectedDate(d)}
+        onSelectDate={(d) => setSelectedDate(d)}
         streak={streakInfo.currentStreak}
-        autoSaveStatus={autoSaveStatus}
-        hasTodayLog={Boolean(log)}
       />
 
       {/* Urge Defuser 90s Breath Modal */}
